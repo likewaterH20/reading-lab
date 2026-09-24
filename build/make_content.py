@@ -155,6 +155,7 @@ for tp in topic_ids:
 
 # ---------------- the grade ladder: 13 levels, Flesch-Kincaid gated ----------------
 import readability as RD
+import extra_questions as XQ
 levels = []
 for lv in RD.load_levels(os.path.join(HERE, "levels_en.js"), "LEVELS_EN"):
     ps = []
@@ -164,8 +165,14 @@ for lv in RD.load_levels(os.path.join(HERE, "levels_en.js"), "LEVELS_EN"):
               "G%d '%s' reads at FK %.1f" % (lv["grade"], p["title"], fk))
         check(len(p["questions"]) == 3 and all(0 <= q["correct"] < len(q["a"]) for q in p["questions"]),
               "G%d '%s' needs 3 valid questions" % (lv["grade"], p["title"]))
-        ps.append({"id": "g%d-%d" % (lv["grade"], k), "title": p["title"], "text": p["text"],
-                   "words": len(p["text"].split()), "fk": round(fk, 1), "questions": p["questions"]})
+        pid = "g%d-%d" % (lv["grade"], k)
+        # a pool of five questions per passage; the app asks three at random
+        qs = p["questions"] + [{"q": q, "a": opts, "correct": 0} for q, opts in XQ.EXTRA.get(pid, [])]
+        check(len(qs) == 5, "%s needs 5 questions, has %d" % (pid, len(qs)))
+        check(all(len(set(q["a"])) == len(q["a"]) for q in qs), pid + " has duplicate answer options")
+        check(len({q["q"] for q in qs}) == len(qs), pid + " repeats a question")
+        ps.append({"id": pid, "title": p["title"], "text": p["text"],
+                   "words": len(p["text"].split()), "fk": round(fk, 1), "questions": qs})
     levels.append({"grade": lv["grade"], "name": lv["name"], "oral": lv["oral"], "silent": lv["silent"], "passages": ps})
 check(len(levels) == 13, "want 13 grades")
 

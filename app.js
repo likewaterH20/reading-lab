@@ -869,20 +869,30 @@ async function readFlow(host, g) {
     })));
     speakPhase('rd_solo');
   };
+  /* A retry is a different test: three of the five questions, the ones not
+     asked last time first, in random order, with the answers shuffled. */
+  const shuffle = arr => arr.map(x => [Math.random(), x]).sort((u, v) => u[0] - v[0]).map(x => x[1]);
+  const lastAsked = (LOG.filter(x => x.kind === 'read' && x.pid === ps.id).pop() || {}).asked || [];
+  const pool = ps.questions.map((_, i) => i);
+  const asked = [...shuffle(pool.filter(i => !lastAsked.includes(i))), ...shuffle(pool.filter(i => lastAsked.includes(i)))].slice(0, 3);
+  const QS = shuffle(asked).map(i => {
+    const q = ps.questions[i];
+    return { q: q.q, opts: shuffle(q.a.map((a, j) => ({ a, ok: j === q.correct }))) };
+  });
   const questions = (wpm, qi = 0, c = 0) => {
     RUN.screen++; const me = RUN.screen;
-    if (qi >= ps.questions.length) return verdict(wpm, c);
-    const q = ps.questions[qi];
-    mount(host, h('div', { class: 'eyebrow' }, ps.title + ' · ' + (qi + 1) + ' / 3'), h('h2', null, q.q),
-      h('div', { class: 'choices' }, q.a.map((a, ai) => h('button', { class: 'choice', onclick: ev => {
+    if (qi >= QS.length) return verdict(wpm, c);
+    const q = QS[qi];
+    mount(host, h('div', { class: 'eyebrow' }, ps.title + ' · ' + (qi + 1) + ' / ' + QS.length), h('h2', null, q.q),
+      h('div', { class: 'choices' }, q.opts.map(o => h('button', { class: 'choice', onclick: ev => {
         if (!alive(me)) return;
-        const ok = ai === q.correct;
+        const ok = o.ok;
         ev.currentTarget.classList.add(ok ? 'right' : 'wrong');
-        if (!ok) host.querySelectorAll('.choice')[q.correct].classList.add('right');
+        if (!ok) host.querySelectorAll('.choice')[q.opts.findIndex(x => x.ok)].classList.add('right');
         RUN.screen++;
         const run = RUN;
         setTimeout(() => RUN === run && questions(wpm, qi + 1, c + (ok ? 1 : 0)), ok ? 600 : 1300);
-      } }, h('b', null, a)))));
+      } }, h('b', null, o.a)))));
   };
   /* The measure: if you read it out loud, words right a minute against the
      grade's oral target (the standard fluency measure). Otherwise the silent
@@ -908,7 +918,7 @@ async function readFlow(host, g) {
     const prev = LOG.filter(x => x.kind === 'read' && x.pid === ps.id && (x.mode || 'silent') === mode).pop();
     if (!tooFast) {
       if (pass) P.passed[ps.id] = Math.max(P.passed[ps.id] || 0, speed);
-      LOG.push({ t: Date.now(), kind: 'read', pid: ps.id, grade: g, mode, speed, wpm: speed, c, pass, ...(oral || {}) });
+      LOG.push({ t: Date.now(), kind: 'read', pid: ps.id, grade: g, mode, speed, wpm: speed, c, pass, asked, ...(oral || {}) });
       RUN.results.push({ id: ps.id, g: pass ? 3 : 2, read: true, wpm: speed });
       if (opened) RUN.opened = opened;
       snapshot(); save();
