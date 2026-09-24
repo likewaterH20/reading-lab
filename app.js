@@ -380,8 +380,7 @@ function todayScreen() {
         : h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))),
     h('div', { class: 'card' },
       h('div', { class: 'row between' }, h('h2', null, t('play')), h('span', { class: 'note' }, t('play_sub'))),
-      levelCard()),
-    gamesCard());
+      levelCard()));
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;
@@ -678,6 +677,8 @@ const PHASES = {
         recBtn.textContent = t('record'); recBtn.onclick = () => take();
         recBtn.classList.remove('primary');
         nextIsMain();
+        /* every word heard: solved, so the app moves on by itself (longer for a sentence, to read the melody score) */
+        if (got.heard.length && match.share === 1 && alive(my)) autoNext(host, () => alive(my) && done(), sentence ? 2400 : 1200);
       } catch (err) {
         /* only a refused permission turns the mic off; a bad take just asks again */
         const refused = err && ['NotAllowedError', 'SecurityError', 'NotFoundError'].includes(err.name);
@@ -976,6 +977,8 @@ async function readFlow(host, g) {
       h('p', { class: 'lead' + (opened ? ' opened' : '') }, msg),
       h('div', { class: 'actions' }, btn(t('rd_model'), () => sayAlong(ps.text, para)), primary(t('next'), () => { stopVoice(); nextEntry(); })),
       para);
+    /* the verdict is read, then the app moves on by itself */
+    autoNext(host, () => { if (!alive(me)) return; stopVoice(); nextEntry(); }, 4000);
   };
 
   /* Practice before the test (repeated reading with a model):
@@ -1027,6 +1030,7 @@ async function readFlow(host, g) {
         h('div', { class: 'stat big' }, h('b', null, oral.acc + '%'), h('span', null, t('rd_acc')))));
       /* reading it out loud was the test: go straight to the questions */
       go.textContent = t('next'); go.onclick = () => questions(null);
+      autoNext(host, () => alive(me) && questions(null), 2000);
     };
     mount(host, ...head(), steps(2), note, para, res,
       h('div', { class: 'actions' }, btn(t('skip'), () => {
@@ -1121,6 +1125,8 @@ async function introCard(host, e) {
     await say(P.lang, g[P.lang] || g.en);
     for (const w of ws) { if (!alive(my)) return; await wait(250); if (!alive(my)) return; await say('en', w.en); }
   }
+  /* the card has been read out: the app moves on by itself; Next is still there for the impatient */
+  if (alive(my)) autoNext(host, () => alive(my) && next(), 1600);
 }
 
 /* ============================ END (peak-end) ============================ */
@@ -1143,8 +1149,13 @@ function endScreen(r) {
   if (P.level === 'beginner') say(P.lang, t('end_title'));
   const nextDue = Object.values(CARDS).reduce((m, c) => Math.min(m, c.due), Infinity);
   const days = Math.ceil((nextDue - Date.now()) / FSRS.DAY);
+  /* the coach steps in: misses that share a pattern become a two-minute fix, offered now */
+  const fix = runStruggle(r);
   screen(h('div', { class: 'eyebrow' }, t('end_title')),
     best ? h('div', { class: 'card best' }, h('div', { class: 'eyebrow' }, t('end_best')), h('p', { class: 'lead' }, best)) : null,
+    fix ? h('div', { class: 'card week' }, h('div', { class: 'eyebrow' }, t('fix_eyebrow')),
+      h('p', { class: 'lead' }, fix.pat ? t('fix_why_pat', { n: fix.n, p: t('pat_' + fix.pat) }) : t('fix_why', { n: fix.n })),
+      h('div', { class: 'actions' }, primary(t('fix_go'), () => startFix(fix)))) : null,
     h('div', { class: 'hero' },
       h('div', { class: 'stat big' }, h('b', null, graded ? Math.round(100 * first / graded) + '%' : '·'), h('span', null, t('end_first'))),
       /* the last screen shows gains; a slip (a word dropping below a week) shows the total instead */
@@ -1153,7 +1164,7 @@ function endScreen(r) {
         ? h('div', { class: 'stat big' }, h('b', null, '+' + pct(covD, 2) + '%'), h('span', null, t('end_cov')))
         : h('div', { class: 'stat big' }, h('b', null, String(graded)), h('span', null, t('end_items')))),
     h('p', { class: 'note' }, t('done_today', { w: whenNext() })),
-    h('div', { class: 'actions' }, primary(t('next'), () => { TAB = 'today'; render(); })));
+    h('div', { class: 'actions' }, fix ? btn(t('next'), () => { TAB = 'today'; render(); }, 'ghost') : primary(t('next'), () => { TAB = 'today'; render(); })));
 }
 
 /* ============================ WORDS ============================ */

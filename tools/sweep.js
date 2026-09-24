@@ -29,9 +29,11 @@ window.__log = []; window.__done = false;
     for (let g = 1; g <= 13; g += 3) await tryE('read ' + g, [{ read: g }]);
     await tryE('practice', [{ practice: true }]); await tryE('dailyread', [{ dread: true }]);
     RUN = null;
-    try { startGame('mix'); await sleep(60); document.querySelector('[data-primary]').click(); await sleep(200); stopVoice(); GAME.t0 -= 61000; await sleep(300); n++;
-      if (!document.querySelector('.hero')) log.push('NO END ' + tag + ' game'); } catch (e) { log.push('THROW ' + tag + ' game: ' + e.message); }
-    GAME = null; EAR.stop(); P.weekSeen = null;
+    /* the coach's fix card and run, as offered after a session with two misses on one pattern */
+    try { const ids = CONTENT.items.filter(i => i.kind === 'word' && /([a-z])\1/.test(i.en)).slice(0, 3).map(i => i.id);
+      RUN = null; startFix({ pat: 'double', n: 2, ids }); n++; await sleep(120); stopVoice();
+      if (!document.querySelector('.stage')) log.push('NO STAGE ' + tag + ' fix'); } catch (e) { log.push('THROW ' + tag + ' fix: ' + e.message); }
+    RUN = null; P.weekSeen = null;
     for (const tab of ['today','words','progress']) { try { TAB = tab; RUN = null; render(); n++; } catch (e) { log.push('THROW ' + tag + ' tab ' + tab + ': ' + e.message); } }
     const bad = document.body.textContent.includes('[object') || document.body.textContent.includes('undefined');
     log.push(tag + ' screens ' + n + (bad ? ' | STRAY TEXT ([object / undefined) on page' : ''));

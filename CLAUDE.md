@@ -17,7 +17,13 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
 - Adult tone: no XP, hearts, points, badges, emoji, fanfares. Competition is
   only against your own record (personal best + ghost).
 - Simple, easy-to-read font everywhere (Atkinson Hyperlegible). One level card
-  (current level, browse back only, future hidden). One mixed game.
+  (current level, browse back only, future hidden). No games: the 60-second
+  challenge was removed on 2026-09-24 at his word ("end the 60sec challenge").
+- Play opens levels: own 75% of your level's words and the next opens at the
+  end of the session (`openByPractice`). The coach steps in on the end screen
+  when two misses in a session share a spelling pattern (`runStruggle`).
+- Once an answer is right, the app moves on by itself (`autoNext` bar). Next
+  stays for the impatient. Only decision screens wait.
 - Keep replies short. No em dashes. Commit to one recommendation.
 - GitHub Pages deploy only when he says it is ready. Pictures need his go
   (fal, gpt-image-2 quality low, ~$0.013 each; 201 prompts in build/pic_jobs.json).

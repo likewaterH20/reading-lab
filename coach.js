@@ -164,112 +164,13 @@ async function practiceFlow(host, e) {
         h('div', { class: 'stat big' }, h('b', null, String(target)), h('span', null, t('pr_target')))),
       h('p', { class: 'lead' + (cleared ? ' opened' : '') }, cleared ? t('pr_cleared') : t('pr_progress', { a: before, b: wcpm })));
     go.textContent = t('next'); go.onclick = () => nextEntry();
+    autoNext(host, () => alive(my) && nextEntry(), 3000);
   }
 }
 
-/* ============================ GAMES ============================
-   Sixty-second rounds. You race your own record: a ghost of your best run
-   shows how far you were at this moment last time. */
-const GAMES = {
-  spell: { key: 'g_spell', sub: 'g_spell_sub', needsMic: false },
-  sound: { key: 'g_sound', sub: 'g_sound_sub', needsMic: false },
-  say:   { key: 'g_say',   sub: 'g_say_sub',   needsMic: true },
-  /* the one game on the home screen: every round is one of the three, mixed */
-  mix:   { key: 'g_mix',   sub: 'g_mix_sub',   needsMic: false },
-};
-const canSay = () => !!(SR && !MIC.srOff && !MIC.denied);
-const GAME_MS = 60000;
-function gameStats(id) { P.games = P.games || {}; return (P.games[id] = P.games[id] || { best: 0, ghost: [], plays: [] }); }
-/* words for a round: the weak pattern and stumbles first, then words you have started */
-function gamePool(id) {
-  const started = Object.keys(CARDS).map(k => ITEMS[k]).filter(it => it && it.kind === 'word' && !it.en.includes(' ') && it.en.length >= 3);
-  const pat = topPattern();
-  const focus = id === 'say' ? topStumbles(8)
-    : id === 'mix' ? [...topStumbles(6), ...(pat ? started.filter(it => patternOf(it.en, pat)) : [])]
-    : pat ? started.filter(it => patternOf(it.en, pat)) : [];
-  /* the words of your current level you do not own yet: the game is a second road through the levels */
-  const lvl = levelItems(P.grade).map(id => ITEMS[id])
-    .filter(it => it && it.kind === 'word' && !it.en.includes(' ') && it.en.length >= 3 && !focus.includes(it) && !(CARDS[it.id] && CARDS[it.id].s >= OWNED_S))
-    .sort(() => Math.random() - 0.5).slice(0, 12);
-  const rest = started.filter(it => !focus.includes(it) && !lvl.includes(it)).sort(() => Math.random() - 0.5);
-  let pool = [...focus.sort(() => Math.random() - 0.5), ...lvl, ...rest];
-  if (pool.length < 20) pool = pool.concat(CONTENT.core.map(k => ITEMS[k]).filter(it => it.en.length >= 3).sort(() => Math.random() - 0.5));
-  return pool.slice(0, 80);
-}
-/* four look-alikes for the hearing game: same length, one or two letters apart */
-function lookAlikes(word) {
-  const cands = CONTENT.items.filter(it => it.kind === 'word' && !it.en.includes(' ') && it.en !== word && Math.abs(it.en.length - word.length) <= 1);
-  const near = cands.filter(it => lev(it.en.toLowerCase(), word.toLowerCase()) <= 2).map(it => it.en);
-  const out = [...new Set(near)].sort(() => Math.random() - 0.5).slice(0, 3);
-  while (out.length < 3) {
-    const r = cands[Math.floor(Math.random() * cands.length)].en;
-    if (!out.includes(r)) out.push(r);
-  }
-  return [word, ...out].sort(() => Math.random() - 0.5);
-}
-let GAME = null;
-function startGame(id) {
-  stopVoice();
-  GAME = { id, score: 0, times: [], t0: 0, pool: gamePool(id), i: 0, token: 0, over: false, missed: [], sayMissed: [], sayRight: 0,
-           kinds: id === 'mix' ? ['spell', 'sound', ...(canSay() ? ['say'] : [])] : [id], deck: [] };
-  gameScreen();
-}
-function gameScreen() {
-  const G = GAME, st = gameStats(G.id), def = GAMES[G.id];
-  document.body.classList.add('running');
-  const host = h('div', { class: 'stage game' });
-  const timeBar = h('div', { class: 'track' }, h('i', { style: 'width:100%' }));
-  const scoreEl = h('b', null, '0'), ghostEl = h('span', { class: 'ghost' }, st.best ? t('g_ghost', { n: 0 }) : '');
-  mount(APP(), h('section', { class: 'screen run' },
-    h('div', { class: 'runbar' }, timeBar, h('button', { class: 'ghost small', onclick: () => endGame(true) }, t('close_x'))),
-    h('div', { class: 'row between' }, h('div', { class: 'stat' }, scoreEl, h('span', null, t('g_score'))),
-      h('div', { class: 'stat' }, h('b', null, String(st.best)), h('span', null, t('g_best'))), ghostEl),
-    host));
-  G.ui = { host, timeBar, scoreEl, ghostEl };
-  mount(host, h('h2', null, t(def.key)), h('p', { class: 'lead' }, t(def.sub)),
-    h('div', { class: 'actions' }, primary(t('g_go'), () => {
-      G.t0 = performance.now(); G.wall = Date.now();
-      /* the ear opens now, so it is already listening when the first say-it word appears */
-      if (G.kinds.includes('say')) EAR.start();
-      G.clock = setInterval(tick, 100); nextRound();
-    })));
-  function tick() {
-    if (GAME !== G || G.over) return clearInterval(G.clock);
-    const el = performance.now() - G.t0, left = Math.max(0, GAME_MS - el);
-    timeBar.firstChild.style.width = (100 * left / GAME_MS).toFixed(1) + '%';
-    if (st.ghost.length) {
-      const ghostNow = st.ghost.filter(x => x <= el).length;
-      ghostEl.textContent = t('g_ghost', { n: ghostNow });
-      ghostEl.classList.toggle('ahead', G.score > ghostNow);
-    }
-    if (left <= 0) endGame(false);
-  }
-}
-function gotOne(it) {
-  const G = GAME;
-  G.score++; G.times.push(performance.now() - G.t0);
-  if (G.kind === 'say') G.sayRight++;
-  G.ui.scoreEl.textContent = String(G.score);
-  gradeInGame(it, 3);
-}
-function missOne(it, typed) {
-  const G = GAME;
-  G.missed.push(it.en);
-  if (G.kind === 'say') G.sayMissed.push(norm(it.en));
-  gradeInGame(it, 1, typed);
-}
-/* a game answer is real retrieval, so it updates memory, but only once a day per word */
-function gradeInGame(it, g, typed) {
-  const c = CARDS[it.id];
-  const extra = { t: Date.now(), id: it.id, g, ph: 'game:' + GAME.kind, w: GAME.kind === 'spell' ? 1 : undefined };
-  if (typed != null && GAME.kind === 'spell') extra.pat = spellPatterns(it.en, typed);
-  LOG.push(extra);
-  /* a word met first in the game starts its memory card here; replays the same day do not farm 'owned' */
-  if (!c) CARDS[it.id] = FSRS.rate(null, g);
-  else if (today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, g);
-}
-/* PLAY OPENS LEVELS: own three quarters of your level's words, by daily or by
-   game, and the next level opens without waiting for the reading test. */
+/* ============================ PLAY OPENS LEVELS ============================
+   Own three quarters of your level's words, and the next level opens at the
+   end of the session without waiting for the reading test. */
 function openByPractice() {
   if (P.grade >= NLEV) return null;
   const ids = levelItems(P.grade); if (ids.length < 5) return null;
@@ -280,10 +181,13 @@ function openByPractice() {
   LOG.push({ t: Date.now(), kind: 'open', g, by: 'play', own, of: ids.length });
   return { g, own, of: ids.length };
 }
-/* THE COACH STEPS IN: misses in one game that share a spelling pattern, or
-   just enough misses, become a two-minute fix right after the game. */
-function gameStruggle(G) {
-  const L = LOG.filter(x => x.t >= G.wall && x.ph && x.ph.startsWith('game:') && x.g < 3 && ITEMS[x.id]);
+
+/* ============================ THE COACH STEPS IN ============================
+   Misses in one session that share a spelling pattern, or just enough misses,
+   become a two-minute fix offered on the end screen, while it is fresh. */
+function runStruggle(r) {
+  if (r.fix) return null;
+  const L = r.results.filter(x => !x.read && x.g < 3 && ITEMS[x.id]);
   if (L.length < 2) return null;
   const pat = {};
   for (const x of L) for (const p of (x.pat || [])) pat[p] = (pat[p] || 0) + 1;
@@ -299,8 +203,8 @@ function gameStruggle(G) {
   return { pat: null, n: missed.length, ids: missed.slice(0, 5) };
 }
 function startFix(f) {
-  document.body.classList.remove('running');
   startRun([{ intro: 'fix', key: f.pat || '', ids: f.ids }, ...f.ids.map(id => ({ id, mode: 'review', focus: true }))]);
+  RUN.fix = true; // a fix never offers another fix
 }
 /* the letters of a word that carry a spelling pattern, for marking */
 function patternRx(p) {
@@ -318,103 +222,6 @@ function markPattern(word, p) {
   if (last < word.length) out.push(word.slice(last));
   return out;
 }
-function nextRound() {
-  const G = GAME; if (!G || G.over) return;
-  const it = G.pool[G.i++ % G.pool.length];
-  const my = ++G.token;
-  const host = G.ui.host;
-  /* which kind of round: a shuffled cycle so the three alternate. Stumbled
-     words sit first in the pool, so a third of them land on a say-it round;
-     forcing every stumble into say-it opened the game as a wall of mic rounds. */
-  if (!G.deck.length) G.deck = G.kinds.slice().sort(() => Math.random() - 0.5);
-  const kind = G.deck.shift();
-  G.kind = kind;
-  const label = G.id === 'mix' ? h('div', { class: 'eyebrow' }, t('g_k_' + kind)) : null;
-  if (kind === 'spell') {
-    const inp = input(v => {
-      if (!v.trim() || G.token !== my) return;
-      if (isRight(v, it.en)) { gotOne(it); nextRound(); }
-      else { missOne(it, v); mount(host, letterDiff(it.en, v)); setTimeout(() => G.token === my && nextRound(), 900); }
-    });
-    mount(host, label, listenRow(() => say('en', it.en), () => say('en', it.en, true)), inp);
-    inp.focus(); say('en', it.en);
-  } else if (kind === 'sound') {
-    const opts = lookAlikes(it.en);
-    mount(host, label, listenRow(() => say('en', it.en), () => say('en', it.en, true)),
-      h('div', { class: 'choices grid' }, opts.map(o => h('button', { class: 'choice', translate: 'no', onclick: ev => {
-        if (G.token !== my) return; G.token++;
-        if (o === it.en) { ev.currentTarget.classList.add('right'); gotOne(it); setTimeout(nextRound, 250); }
-        else { ev.currentTarget.classList.add('wrong'); missOne(it); setTimeout(nextRound, 700); }
-      } }, h('b', null, o)))));
-    say('en', it.en);
-  } else if (kind === 'say') {
-    const status = h('p', { class: 'note' }, t('g_say_now'));
-    /* the ear is already open; it ends the round the moment you finish the word */
-    const ear = EAR.listen(it.en, (ok, heard) => {
-      if (G.token !== my || G.over) return;
-      if (ok) { gotOne(it); return nextRound(); }
-      G.token++; missOne(it);
-      status.textContent = heard ? t('heard', { w: heard }) : t('g_say_miss');
-      setTimeout(() => GAME === G && !G.over && nextRound(), 700);
-    }, () => {
-      /* the mic was refused: in the mixed game the say-it rounds drop out and the game goes on */
-      if (GAME !== G || G.over) return;
-      G.kinds = G.kinds.filter(k => k !== 'say'); G.deck = []; G.token++; nextRound();
-    });
-    mount(host, label, wordBlock(it, true, false), status,
-      h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'), btn(t('skip'), () => { if (G.token !== my) return; ear.cancel(); G.token++; missOne(it); nextRound(); }, 'ghost')));
-    /* nothing heard at all for 6 s: the round moves on ungraded so the clock is never eaten by the mic */
-    setTimeout(() => {
-      if (G.token !== my || G.over) return;
-      G.token++; ear.cancel(); status.textContent = t('g_say_miss');
-      setTimeout(() => GAME === G && !G.over && nextRound(), 700);
-    }, 6000);
-  }
-}
-function endGame(quit) {
-  const G = GAME; if (!G || G.over) return;
-  G.over = true; clearInterval(G.clock); EAR.stop(); stopVoice();
-  const st = gameStats(G.id);
-  const record = !quit && G.score > st.best;
-  let opened = null, fix = null;
-  if (!quit) {
-    st.plays.push({ t: Date.now(), score: G.score });
-    if (record) { st.best = G.score; st.ghost = G.times.slice(); }
-    LOG.push({ t: Date.now(), kind: 'game', game: G.id, score: G.score, record });
-    const saidN = G.sayRight + G.sayMissed.length;
-    if (saidN) LOG.push({ t: Date.now(), kind: 'say', share: G.sayRight / saidN, missed: G.sayMissed });
-    opened = openByPractice();
-    fix = gameStruggle(G);
-  }
-  snapshot(); save();
-  GAME = null;
-  if (quit) { document.body.classList.remove('running'); return render(); }
-  const last = st.plays.slice(-6).map(p => p.score);
-  screen(h('div', { class: 'eyebrow' + (record ? ' ok' : '') }, record ? t('g_record') : t('g_done')),
-    h('h2', null, t(GAMES[G.id].key)),
-    h('div', { class: 'hero' },
-      h('div', { class: 'stat big' }, h('b', null, String(G.score)), h('span', null, t('g_score'))),
-      h('div', { class: 'stat big' }, h('b', null, String(st.best)), h('span', null, t('g_best')))),
-    opened ? h('div', { class: 'card best' }, h('div', { class: 'eyebrow ok' }, t('g_open')),
-      h('p', { class: 'lead' }, t('open_by_play', { g: gradeName(opened.g), a: opened.own, b: opened.of }))) : null,
-    fix ? h('div', { class: 'card week' }, h('div', { class: 'eyebrow' }, t('fix_eyebrow')),
-      h('p', { class: 'lead' }, fix.pat ? t('fix_why_pat', { n: fix.n, p: t('pat_' + fix.pat) }) : t('fix_why', { n: fix.n })),
-      h('div', { class: 'actions' }, primary(t('fix_go'), () => startFix(fix)))) : null,
-    last.length > 1 ? lineChart(last, v => String(Math.round(v))) : null,
-    G.missed.length ? h('p', { class: 'note' }, t('g_missed') + ' ' + [...new Set(G.missed)].slice(0, 8).join(', ')) : null,
-    h('div', { class: 'actions' }, btn(t('g_again'), () => startGame(G.id)), fix ? btn(t('next'), () => { document.body.classList.remove('running'); render(); }, 'ghost')
-      : primary(t('next'), () => { document.body.classList.remove('running'); render(); })));
-}
-function gamesCard() {
-  /* one game: the three kinds of round, mixed */
-  const st = gameStats('mix');
-  return h('div', { class: 'card' },
-    h('div', { class: 'row between' }, h('h2', null, t('g_mix')), h('span', { class: 'note' }, t('games_sub'))),
-    h('p', { class: 'note' }, t('g_mix_sub')),
-    h('div', { class: 'row between' },
-      h('span', { class: 'rec' }, st.best ? t('g_best') + ': ' + st.best : t('g_new')),
-      primary(t('g_go'), () => startGame('mix'))));
-}
 
 /* ============================ WEEKLY REPORT ============================ */
 function weekStart(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); const k = (x.getDay() + 6) % 7; x.setDate(x.getDate() - k); return x.getTime(); }
@@ -423,7 +230,6 @@ function weekNumbers(from, to) {
   const days = new Set(L.map(x => today(new Date(x.t)))).size;
   const graded = L.filter(x => x.g != null && !x.kind);
   const reads = L.filter(x => ['read', 'practice', 'dailyread'].includes(x.kind));
-  const games = L.filter(x => x.kind === 'game');
   const dayKeys = Object.keys(DAYS).filter(k => { const t = new Date(k + 'T12:00').getTime(); return t >= from && t < to; }).sort();
   const ownedEnd = dayKeys.length ? DAYS[dayKeys[dayKeys.length - 1]].owned : null;
   const sk = skills(from, to).s;
@@ -434,7 +240,6 @@ function weekNumbers(from, to) {
     readAcc: reads.filter(x => x.acc != null).length ? Math.round(reads.filter(x => x.acc != null).reduce((p, x) => p + x.acc, 0) / reads.filter(x => x.acc != null).length) : null,
     spelling: sk.spelling.v != null ? Math.round(100 * sk.spelling.v) : null,
     melody: sk.melody.v != null ? Math.round(100 * sk.melody.v) : null,
-    records: games.filter(x => x.record).length,
     dreads: L.filter(x => x.kind === 'dailyread').length,
     owned: ownedEnd,
   };
@@ -452,7 +257,6 @@ function weeklyReport() {
     ['wk_read_acc', now.readAcc, before.readAcc, '%'],
     ['wk_melody', now.melody, before.melody, '%'],
     ['wk_owned', now.owned, before.owned, ''],
-    ['wk_records', now.records, before.records, ''],
   ].filter(r => r[1] != null || r[2] != null);
   const better = rows.filter(r => r[1] != null && r[2] != null && r[1] > r[2]).map(r => t(r[0]));
   const weak = weakest(2);
