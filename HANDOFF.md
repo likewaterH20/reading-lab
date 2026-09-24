@@ -143,10 +143,17 @@ The say-it phase and out-loud reading cannot be simulated (no mic in the pane).
 
 ## Next, in priority order (with the reason)
 
-1. **Bigger reading library.** Reading a lot of easy text is the best-supported
-   route to "read anything" (Jeon & Day 2016); the app has 26 passages + 10
-   daily reads. Add many short texts per level, FK-gated, adult topics, 5
-   questions each. Ask him which topics he wants first.
+1. **Keep growing the library.** Reading a lot of easy text is the best-supported
+   route to "read anything" (Jeon & Day 2016); the app now has 52 passages +
+   16 daily reads (9/24). Add more short texts per level in
+   `build/levels_more.js`, FK-gated (write short sentences, measure with
+   `readability.fk_grade` BEFORE building), adult topics, 5 questions each.
+   Ask him which topics he wants next.
+1b. **Output with feedback.** The "Use it" step checks form only (has the
+   word, 5+ words). Real feedback on his sentences needs a model or a human;
+   he types, so an offline grammar pass or a paste-to-Claude flow is the next
+   honest step. Spoken version (say your sentence, mic checks the word) is a
+   small add once the mic is trusted in Chrome.
 2. **Calibrate on real use.** After a week of his LOG: check oral targets for
    adults, the 90% rule, melody thresholds. Export his LOG from the Chrome
    console and analyse it; do not guess.
