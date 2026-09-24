@@ -356,6 +356,52 @@ function contourChart(m, u) {
     u && s('path', { d: path(u), class: 'c-user' }));
 }
 
+/* ============================ READING ALOUD ============================
+   Continuous recognition while someone reads a passage. Each heard word is
+   matched in order against the passage (a short lookahead lets a skipped
+   word stay missed without derailing the rest), and lit as it is heard.
+   Chrome ends a recognition session after a pause, so it restarts itself and
+   keeps what was already heard. */
+function liveRead(para, onError) {
+  const spans = [...para.querySelectorAll('.w')];
+  const want = spans.map(sp => norm(sp.textContent).split(' '));
+  const hit = new Array(spans.length).fill(false);
+  let kept = '', live = '', stopped = false, failed = false;
+  const align = () => {
+    hit.fill(false);
+    let p = 0;
+    for (const w of norm(kept + ' ' + live).split(' ').filter(Boolean)) {
+      for (let k = p; k < Math.min(p + 4, spans.length); k++) {
+        const tw = want[k][want[k].length - 1];
+        if (tw === w || want[k].includes(w) || (tw.length > 3 && lev(tw, w) <= 1)) { hit[k] = true; p = k + 1; break; }
+      }
+    }
+    spans.forEach((sp, i) => { sp.classList.toggle('said', hit[i]); sp.classList.toggle('here', i === p); });
+  };
+  const recog = new SR();
+  recog.lang = 'en-US'; recog.continuous = true; recog.interimResults = true; recog.maxAlternatives = 1;
+  recog.onresult = e => {
+    let fin = '', inter = '';
+    for (let i = 0; i < e.results.length; i++) (e.results[i].isFinal ? (fin += e.results[i][0].transcript + ' ') : (inter += e.results[i][0].transcript + ' '));
+    live = fin + inter; recog._fin = fin; align();
+  };
+  recog.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { failed = true; stopped = true; if (onError) onError(e.error); } };
+  recog.onend = () => {
+    kept += ' ' + (recog._fin || ''); live = ''; recog._fin = '';
+    if (!stopped) try { recog.start(); } catch {}
+  };
+  try { recog.start(); } catch { failed = true; if (onError) onError('start'); }
+  return {
+    stop() {
+      stopped = true; try { recog.stop(); } catch {}
+      /* only words before the last one heard count as missed; the rest were not reached */
+      const reached = hit.lastIndexOf(true) + 1;
+      spans.forEach((sp, i) => { sp.classList.remove('here'); sp.classList.toggle('miss', i < reached && !hit[i]); });
+      return { right: hit.filter(Boolean).length, total: reached, failed };
+    }
+  };
+}
+
 /* ============================ TEXT COMPARISON ============================ */
 const norm = x => String(x).toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
 function lev(a, b) {

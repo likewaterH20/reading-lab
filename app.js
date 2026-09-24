@@ -798,7 +798,7 @@ async function readFlow(host, g) {
     RUN.screen++; const me = RUN.screen;
     const para = passageEl(ps);
     const t0 = performance.now();
-    mount(host, ...head(), para, h('div', { class: 'actions' }, primary(t('rd_done'), () => {
+    mount(host, ...head(), steps(3), h('p', { class: 'note' }, t('rd_solo')), para, h('div', { class: 'actions' }, primary(t('rd_done'), () => {
       if (RUN.screen !== me) return;
       const wpm = Math.round(ps.words / ((performance.now() - t0) / 60000));
       questions(wpm);
@@ -832,9 +832,11 @@ async function readFlow(host, g) {
     } else if (pass) msg = t('right');
     else if (wpm < target && c >= 2) msg = t('rd_slow', { w: wpm, t: target });
     else msg = t('rd_missed', { c });
+    /* the line going up: your last try on this same passage against this one */
+    const prev = LOG.filter(x => x.kind === 'read' && x.pid === ps.id).pop();
     if (!tooFast) {
       if (pass) P.passed[ps.id] = Math.max(P.passed[ps.id] || 0, wpm);
-      LOG.push({ t: Date.now(), kind: 'read', pid: ps.id, grade: g, wpm, c, pass });
+      LOG.push({ t: Date.now(), kind: 'read', pid: ps.id, grade: g, wpm, c, pass, ...(oral || {}) });
       RUN.results.push({ id: ps.id, g: pass ? 3 : 2, read: true, wpm });
       if (opened) RUN.opened = opened;
       snapshot(); save();
@@ -843,24 +845,64 @@ async function readFlow(host, g) {
     mount(host, h('div', { class: 'eyebrow' + (pass ? ' ok' : '') }, t('rd_title') + ' · ' + gradeName(g)),
       h('div', { class: 'scores' },
         h('div', { class: 'stat big' }, h('b', null, String(wpm)), h('span', null, t('rd_wpm'))),
-        h('div', { class: 'stat big' }, h('b', null, c + '/3'), h('span', null, t('rd_right')))),
+        h('div', { class: 'stat big' }, h('b', null, c + '/3'), h('span', null, t('rd_right'))),
+        oral ? h('div', { class: 'stat big' }, h('b', null, String(oral.wcpm)), h('span', null, t('rd_wcpm'))) : null),
+      prev && !tooFast ? h('p', { class: 'note' }, t('rd_history', { a: prev.wpm, b: wpm })) : null,
       h('p', { class: 'lead' + (opened ? ' opened' : '') }, msg),
       h('div', { class: 'actions' }, btn(t('rd_model'), () => sayAlong(ps.text, para)), primary(t('next'), () => { stopVoice(); nextEntry(); })),
       para);
   };
 
-  /* intro: the goal, then either listen first (beginners always) or go */
-  const para = passageEl(ps);
-  const listenFirst = async () => {
-    para.classList.add('shown');
-    await speakPhase('rd_listen'); if (!alive(my)) return;
+  /* Practice before the test (repeated reading with a model):
+     1 listen while the words light up, 2 read it out loud with the mic,
+     3 the timed read that counts. */
+  const steps = n => h('div', { class: 'steps' }, ['rd_step1', 'rd_step2', 'rd_step3'].map((k, i) =>
+    h('span', { class: i + 1 === n ? 'on' : i + 1 < n ? 'past' : '' }, (i + 1) + ' ' + t(k))));
+  const listen = async () => {
+    RUN.screen++; const me = RUN.screen;
+    const para = passageEl(ps);
+    mount(host, ...head(), steps(1), targetLine, para,
+      h('div', { class: 'actions' }, btn(t('skip'), () => { stopVoice(); aloud(); }, 'ghost'), primary(t('next'), () => { stopVoice(); aloud(); })));
+    await speakPhase('rd_listen'); if (RUN.screen !== me) return;
     await sayAlong(ps.text, para);
+    if (RUN.screen === me) autoNext(host, () => RUN.screen === me && aloud(), 900);
   };
-  mount(host, ...head(), targetLine,
-    P.level === 'beginner' ? para : null,
-    h('div', { class: 'actions' }, P.level === 'beginner' ? null : btn(t('rd_model'), async () => { host.insertBefore(para, host.lastChild); await sayAlong(ps.text, para); }, 'ghost'),
-      primary(t('rd_start'), () => { stopVoice(); solo(); })));
-  if (P.level === 'beginner') listenFirst();
+  const aloud = () => {
+    RUN.screen++; const me = RUN.screen;
+    if (!SR || MIC.denied) return solo();
+    const para = passageEl(ps);
+    const note = h('p', { class: 'note' }, t('rd_aloud_hint'));
+    const res = h('div', { class: 'result' });
+    let reader = null, t0 = 0;
+    const go = primary(t('rd_aloud_go'), () => {
+      if (reader) return finish();
+      stopVoice();
+      t0 = performance.now();
+      reader = liveRead(para, () => { MIC.denied = true; note.textContent = t('rd_aloud_off'); });
+      go.textContent = t('rd_done');
+    });
+    const finish = () => {
+      if (RUN.screen !== me) return;
+      const r = reader.stop(); reader = null;
+      if (r.failed || !r.right) { MIC.denied = MIC.denied || r.failed; return solo(); }
+      const min = (performance.now() - t0) / 60000;
+      oral = { wcpm: Math.round(r.right / min), acc: Math.round(100 * r.right / r.total) };
+      note.textContent = t('rd_tap_missed');
+      res.replaceChildren(h('div', { class: 'scores' },
+        h('div', { class: 'stat big' }, h('b', null, String(oral.wcpm)), h('span', null, t('rd_wcpm'))),
+        h('div', { class: 'stat big' }, h('b', null, oral.acc + '%'), h('span', null, t('rd_acc')))));
+      go.textContent = t('next'); go.onclick = () => solo();
+    };
+    mount(host, ...head(), steps(2), note, para, res,
+      h('div', { class: 'actions' }, btn(t('skip'), () => { if (reader) reader.stop(); solo(); }, 'ghost'), go));
+  };
+  let oral = null;
+  if (P.level === 'beginner' || !SEEN['read:' + ps.id]) { SEEN['read:' + ps.id] = true; save(); listen(); }
+  else {
+    /* seen it before: the listen step is optional */
+    mount(host, ...head(), steps(1), targetLine,
+      h('div', { class: 'actions' }, btn(t('rd_step1'), () => listen(), 'ghost'), primary(t('rd_step2'), () => aloud())));
+  }
 }
 
 /* ============================ TEACHING CARDS ============================ */

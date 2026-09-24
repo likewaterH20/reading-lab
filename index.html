@@ -161,6 +161,12 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); border-col
 /* reading test */
 .passage { font: 400 clamp(19px, 4.6vw, 22px)/1.75 var(--read); color: var(--reading); margin: 0; max-width: 34em; letter-spacing: .01em; }
 .passage .w { cursor: pointer; border-radius: 4px; }
+.passage .w.said { color: var(--accent); }
+.passage .w.here { box-shadow: 0 2px 0 var(--accent); }
+.passage .w.miss { color: var(--miss); text-decoration: underline; text-underline-offset: 4px; }
+.steps { display: flex; gap: 14px; font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+.steps .on { color: var(--accent); font-weight: 700; }
+.steps .past { color: var(--text); }
 .passage .w.lit { color: var(--accent-ink); background: var(--accent); }
 .choice.right { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
 .choice.wrong { border-color: var(--miss); background: color-mix(in srgb, var(--miss) 14%, var(--panel)); }
