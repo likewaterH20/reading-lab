@@ -35,8 +35,18 @@ Rafael plays on **4400**. Build and test on **4401**. Release with rsync to the
 An adult reading and pronunciation coach for Spanish-English bilinguals and
 for adults who cannot read English yet. Neural voices (Andrew EN, Dalia ES).
 
-**Home:** Daily Read card, then level and stats, then Daily (7 min), then one
-level card (current level, browse back only), then the 60-second challenge.
+**Home (minimal, 2026-09-24):** Daily session card (one line, one button),
+then the Daily Read card, then one level card (current level, browse back
+only). Stats live in Progress. The 60-second challenge was REMOVED at his word.
+
+**His rules from 2026-09-24, verbatim:** "This app needs to be user-friendly
+super extremely minimal but effective." "We need built-in automation like move
+onto the next thing once ... it's solved." "once the user is struggling is when
+you activate and really start helping". Lyrics must be ORIGINAL (no copyrighted
+lyrics, ever). The new look ("ink and paper", index.html at HEAD) is on 4401
+only until he says "go"; the 4400 mirror carries the OLD stylesheet
+(`git show 506f70f:index.html`) plus two rules (`.passage.lyrics`,
+`.sentence .blank`) appended.
 
 - **Daily**: FSRS reviews + new items from opened levels, interleaved; coach
   focus items for weak spots; speed practice first when owed; the reading test
@@ -53,16 +63,30 @@ level card (current level, browse back only), then the 60-second challenge.
 - **Coach** (coach.js): classifies misspellings (double, silent, vowels,
   endings, consonants), tracks stumbled words, scores 6 skills, picks the two
   weakest, feeds them into the daily and the game.
-- **60-second challenge**: rounds mix type-it, pick-the-spelling, say-it;
-  personal record and a ghost of your best run.
+- **Placement** (onboarding, readers only): adaptive maze, 8 sentences with a
+  missing word and 3 choices, right +2 levels / wrong -1, starts at level 3;
+  placed = highest level read right with no lower level read wrong. ~30 s.
+- **Play opens levels**: `openByPractice()` at the end of every session; own
+  75% of your level's words (s >= 7) and the next level opens.
+- **The coach steps in**: `runStruggle(r)` on the end screen; two misses in a
+  session sharing a spelling pattern offer "Work on it now" = a fix run
+  (`intro: 'fix'` card with the pattern letters marked, then those words).
+- **Auto-advance**: `autoNext` bar after every solved step (write, build,
+  choices, say phase with all words heard, oral read result, verdict, intro
+  cards, speed practice). Next stays for the impatient; decision screens wait.
+- **Lyrics**: 6 original songs (d11-d16, `kind: "lyrics"`) in the Daily Read
+  rotation, line breaks kept (`wordSpans` keeps real whitespace,
+  `.passage.lyrics` is pre-line). Card shows "Lyrics · Title".
+- **EAR** (core.js): a persistent always-listening recogniser built for the
+  game. Now UNUSED; keep or wire into the say phase, do not delete blindly.
 - **Weekly report**: this week vs last, what got better, focus in plain words,
   stumbled words. Home once per new week; always in Progress.
-- **Content**: 13 levels (Nivel 1-13 with plain labels) x 2 passages; 24
-  industries x 20 terms with sentences and Spanish glosses; 200+ memory tricks;
+- **Content**: 13 levels (Nivel 1-13 with plain labels) x 2 passages; 25
+  industries x 20 terms (Car Sales added 9/24) with sentences and Spanish glosses; 200+ memory tricks;
   18 Spanish-English shortcut rules; 12 false friends; 20 melody sentences;
   96 Life facts (money, work, health, safety, home, rights, civics, food,
   online safety, driving, science, manners); 13 beginner sound groups; every
-  passage word as a pronunciation item. 6,195 clips, 632 timed texts.
+  passage word as a pronunciation item. 6,456 clips, 658 timed texts.
 
 ## Files
 
@@ -73,7 +97,7 @@ level card (current level, browse back only), then the 60-second challenge.
 | `srs.js` | FSRS-5 scheduler |
 | `core.js` | `h()`/`mount()`, storage, voice `say`/`sayAlong` (stall watchdog), mic, `liveRead` (read-aloud matcher), pitch + melody score, `norm` (numbers to words), diffs |
 | `app.js` | onboarding, placement, learnOrder/levels, buildSession/decorate, item phases, readFlow, intro cards, end screen, Words, Progress, Profile, level card |
-| `coach.js` | spelling patterns, skills, focus, speed practice, games, weekly report, Daily Read |
+| `coach.js` | spelling patterns, skills, focus, speed practice, play-opens-levels, coach step-in (runStruggle/startFix/markPattern), weekly report, Daily Read |
 | `build/content_src.py` | hand content: glosses, starter, shortcuts, traps, industries, tricks, pics, facts, respell overrides |
 | `build/strings_src.py` | every UI string, en + es |
 | `build/levels_en.js`, `extra_questions.py`, `daily_reads.py` | reading content |
@@ -81,9 +105,10 @@ level card (current level, browse back only), then the 60-second challenge.
 | `tools/` | mock-sr, sweep, content-check |
 
 State lives in localStorage `rl5.*`: `profile` (P: lang, level, inds, grade,
-passed, order, practice, games, weekSeen), `cards`, `log`, `days`, `seen`.
+passed, order, practice, weekSeen; old profiles may still carry `games`),
+`cards`, `log`, `days`, `seen`.
 LOG kinds: graded items (`id,g,w,pat,mel`), `read`, `practice`, `dailyread`,
-`say`, `game`.
+`say`, `open` (level opened by play). Old logs may carry `game`.
 
 ## Verified vs not
 
