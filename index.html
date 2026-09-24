@@ -173,6 +173,14 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); border-col
 .choice.wrong { border-color: var(--miss); background: color-mix(in srgb, var(--miss) 14%, var(--panel)); }
 .opened { color: var(--accent); font-weight: 600; }
 .note.warn { color: var(--miss); }
+.levelcard { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.levelcard.current { border-color: var(--accent); }
+.levelcard .lvhead { display: flex; align-items: baseline; gap: 10px; }
+.levelcard .lvhead b { font: 700 34px/1 var(--read); }
+.levelcard .tick { color: var(--accent); font-weight: 700; font-size: 22px; }
+.levelcard .lbar { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.levelcard .lbar i { display: block; height: 100%; background: var(--accent); }
+.rec { color: var(--accent); font-weight: 700; }
 .card.dread { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
 .passage .w.common { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 5px; }
 .gamegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }

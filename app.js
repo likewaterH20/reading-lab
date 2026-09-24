@@ -380,7 +380,7 @@ function todayScreen() {
         : h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))),
     h('div', { class: 'card' },
       h('div', { class: 'row between' }, h('h2', null, t('play')), h('span', { class: 'note' }, t('play_sub'))),
-      h('div', { class: 'levels' }, CONTENT.levels.map(L => levelTile(L)))),
+      levelCard()),
     gamesCard());
 }
 function levelTile(L) {
@@ -394,6 +394,26 @@ function levelTile(L) {
     h('span', { class: 'lname' }, levelLabel(g)),
     open ? h('span', { class: 'lbar' }, h('i', { style: `width:${ids.length ? Math.round(100 * own / ids.length) : 0}%` })) : h('span', { class: 'lock' }, '·'),
     passed ? h('span', { class: 'tick' }, '✓') : null);
+}
+/* One level at a time: your current level, and the ones you have done behind
+   it. Levels ahead stay hidden until you open them. */
+let LVIEW = null;
+function levelCard() {
+  if (LVIEW == null || LVIEW > P.grade || LVIEW < 1) LVIEW = P.grade;
+  const g = LVIEW, L = CONTENT.levels[g - 1];
+  const ids = levelItems(g);
+  const own = ids.filter(id => CARDS[id] && CARDS[id].s >= OWNED_S).length;
+  const passed = L.passages.some(p => P.passed[p.id]);
+  const nav = (d) => { LVIEW = g + d; render(); };
+  return h('div', { class: 'levelcard' + (g === P.grade ? ' current' : '') },
+    h('div', { class: 'row between' },
+      g > 1 ? h('button', { class: 'ghost small', onclick: () => nav(-1), 'aria-label': t('lv_prev') }, '‹ ' + gradeName(g - 1)) : h('span'),
+      g < P.grade ? h('button', { class: 'ghost small', onclick: () => nav(1), 'aria-label': t('lv_next') }, gradeName(g + 1) + ' ›') : h('span')),
+    h('div', { class: 'lvhead' }, h('b', null, gradeName(g)), passed ? h('span', { class: 'tick' }, '✓') : null),
+    h('p', { class: 'lead' }, levelLabel(g)),
+    h('div', { class: 'lbar' }, h('i', { style: `width:${ids.length ? Math.round(100 * own / ids.length) : 0}%` })),
+    h('p', { class: 'note' }, t('lv_owned', { a: own, b: ids.length }) + (g === P.grade ? ' · ' + t('lv_current') : '')),
+    h('div', { class: 'actions' }, primary(t('lv_play'), () => startLevel(g))));
 }
 /* play a level: its words (new first, then the weakest), then its reading test */
 function startLevel(g) {

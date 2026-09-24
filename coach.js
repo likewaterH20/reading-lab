@@ -174,14 +174,19 @@ const GAMES = {
   spell: { key: 'g_spell', sub: 'g_spell_sub', needsMic: false },
   sound: { key: 'g_sound', sub: 'g_sound_sub', needsMic: false },
   say:   { key: 'g_say',   sub: 'g_say_sub',   needsMic: true },
+  /* the one game on the home screen: every round is one of the three, mixed */
+  mix:   { key: 'g_mix',   sub: 'g_mix_sub',   needsMic: false },
 };
+const canSay = () => !!(SR && !MIC.srOff && !MIC.denied);
 const GAME_MS = 60000;
 function gameStats(id) { P.games = P.games || {}; return (P.games[id] = P.games[id] || { best: 0, ghost: [], plays: [] }); }
 /* words for a round: the weak pattern and stumbles first, then words you have started */
 function gamePool(id) {
   const started = Object.keys(CARDS).map(k => ITEMS[k]).filter(it => it && it.kind === 'word' && !it.en.includes(' ') && it.en.length >= 3);
   const pat = topPattern();
-  const focus = id === 'say' ? topStumbles(8) : pat ? started.filter(it => patternOf(it.en, pat)) : [];
+  const focus = id === 'say' ? topStumbles(8)
+    : id === 'mix' ? [...topStumbles(6), ...(pat ? started.filter(it => patternOf(it.en, pat)) : [])]
+    : pat ? started.filter(it => patternOf(it.en, pat)) : [];
   const rest = started.filter(it => !focus.includes(it)).sort(() => Math.random() - 0.5);
   let pool = [...focus.sort(() => Math.random() - 0.5), ...rest];
   if (pool.length < 20) pool = pool.concat(CONTENT.core.map(k => ITEMS[k]).filter(it => it.en.length >= 3).sort(() => Math.random() - 0.5));
@@ -201,7 +206,8 @@ function lookAlikes(word) {
 let GAME = null;
 function startGame(id) {
   stopVoice();
-  GAME = { id, score: 0, times: [], t0: 0, pool: gamePool(id), i: 0, token: 0, over: false, missed: [] };
+  GAME = { id, score: 0, times: [], t0: 0, pool: gamePool(id), i: 0, token: 0, over: false, missed: [], sayMissed: [], sayRight: 0,
+           kinds: id === 'mix' ? ['spell', 'sound', ...(canSay() ? ['say'] : [])] : [id], deck: [] };
   gameScreen();
 }
 function gameScreen() {
@@ -233,19 +239,21 @@ function gameScreen() {
 function gotOne(it) {
   const G = GAME;
   G.score++; G.times.push(performance.now() - G.t0);
+  if (G.kind === 'say') G.sayRight++;
   G.ui.scoreEl.textContent = String(G.score);
   gradeInGame(it, 3);
 }
 function missOne(it, typed) {
   const G = GAME;
   G.missed.push(it.en);
+  if (G.kind === 'say') G.sayMissed.push(norm(it.en));
   gradeInGame(it, 1, typed);
 }
 /* a game answer is real retrieval, so it updates memory, but only once a day per word */
 function gradeInGame(it, g, typed) {
   const c = CARDS[it.id];
-  const extra = { t: Date.now(), id: it.id, g, ph: 'game:' + GAME.id, w: GAME.id === 'spell' ? 1 : undefined };
-  if (typed != null && GAME.id === 'spell') extra.pat = spellPatterns(it.en, typed);
+  const extra = { t: Date.now(), id: it.id, g, ph: 'game:' + GAME.kind, w: GAME.kind === 'spell' ? 1 : undefined };
+  if (typed != null && GAME.kind === 'spell') extra.pat = spellPatterns(it.en, typed);
   LOG.push(extra);
   if (c && today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, g);
 }
@@ -254,26 +262,33 @@ function nextRound() {
   const it = G.pool[G.i++ % G.pool.length];
   const my = ++G.token;
   const host = G.ui.host;
-  if (G.id === 'spell') {
+  /* which kind of round: a shuffled cycle so the three alternate; a word you
+     stumble on out loud is said, when the mic can listen */
+  if (!G.deck.length) G.deck = G.kinds.slice().sort(() => Math.random() - 0.5);
+  let kind = G.deck.shift();
+  if (G.id === 'mix' && canSay() && topStumbles(8).some(x => x.id === it.id)) kind = 'say';
+  G.kind = kind;
+  const label = G.id === 'mix' ? h('div', { class: 'eyebrow' }, t('g_k_' + kind)) : null;
+  if (kind === 'spell') {
     const inp = input(v => {
       if (!v.trim() || G.token !== my) return;
       if (isRight(v, it.en)) { gotOne(it); nextRound(); }
       else { missOne(it, v); mount(host, letterDiff(it.en, v)); setTimeout(() => G.token === my && nextRound(), 900); }
     });
-    mount(host, listenRow(() => say('en', it.en), () => say('en', it.en, true)), inp);
+    mount(host, label, listenRow(() => say('en', it.en), () => say('en', it.en, true)), inp);
     inp.focus(); say('en', it.en);
-  } else if (G.id === 'sound') {
+  } else if (kind === 'sound') {
     const opts = lookAlikes(it.en);
-    mount(host, listenRow(() => say('en', it.en), () => say('en', it.en, true)),
+    mount(host, label, listenRow(() => say('en', it.en), () => say('en', it.en, true)),
       h('div', { class: 'choices grid' }, opts.map(o => h('button', { class: 'choice', translate: 'no', onclick: ev => {
         if (G.token !== my) return; G.token++;
         if (o === it.en) { ev.currentTarget.classList.add('right'); gotOne(it); setTimeout(nextRound, 250); }
         else { ev.currentTarget.classList.add('wrong'); missOne(it); setTimeout(nextRound, 700); }
       } }, h('b', null, o)))));
     say('en', it.en);
-  } else if (G.id === 'say') {
+  } else if (kind === 'say') {
     const status = h('p', { class: 'note' }, t('g_say_now'));
-    mount(host, wordBlock(it, true, false), status,
+    mount(host, label, wordBlock(it, true, false), status,
       h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'), btn(t('skip'), () => { stopListen(); missOne(it); nextRound(); }, 'ghost')));
     listenFor(it.en, ok => { if (G.token !== my) return; if (ok) { gotOne(it); nextRound(); } });
   }
@@ -292,7 +307,13 @@ function listenFor(word, cb) {
       if (want.every(w => heard.some(hw => hw === w || (w.length > 3 && lev(hw, w) <= 1)))) { stopListen(); cb(true); return; }
     }
   };
-  r.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { MIC.srOff = true; stopListen(); endGame(false); } };
+  r.onerror = ev => {
+    if (ev.error !== 'not-allowed' && ev.error !== 'service-not-allowed') return;
+    MIC.srOff = true; stopListen();
+    /* in the mixed game, the say-it rounds drop out and the game goes on */
+    if (GAME && GAME.id === 'mix') { GAME.kinds = GAME.kinds.filter(k => k !== 'say'); GAME.deck = []; nextRound(); }
+    else endGame(false);
+  };
   r.onend = () => { if (LISTEN === r) try { r.start(); } catch {} };
   LISTEN = r;
   try { r.start(); } catch {}
@@ -306,7 +327,8 @@ function endGame(quit) {
     st.plays.push({ t: Date.now(), score: G.score });
     if (record) { st.best = G.score; st.ghost = G.times.slice(); }
     LOG.push({ t: Date.now(), kind: 'game', game: G.id, score: G.score, record });
-    if (G.id === 'say' && G.missed.length) LOG.push({ t: Date.now(), kind: 'say', share: G.score / Math.max(1, G.score + G.missed.length), missed: G.missed.map(w => norm(w)) });
+    const saidN = G.sayRight + G.sayMissed.length;
+    if (saidN) LOG.push({ t: Date.now(), kind: 'say', share: G.sayRight / saidN, missed: G.sayMissed });
   }
   snapshot(); save();
   GAME = null;
@@ -322,15 +344,14 @@ function endGame(quit) {
     h('div', { class: 'actions' }, btn(t('g_again'), () => startGame(G.id)), primary(t('next'), () => { document.body.classList.remove('running'); render(); })));
 }
 function gamesCard() {
-  const ids = Object.keys(GAMES).filter(id => !GAMES[id].needsMic || (SR && !MIC.srOff));
+  /* one game: the three kinds of round, mixed */
+  const st = gameStats('mix');
   return h('div', { class: 'card' },
-    h('div', { class: 'row between' }, h('h2', null, t('games')), h('span', { class: 'note' }, t('games_sub'))),
-    h('div', { class: 'gamegrid' }, ids.map(id => {
-      const st = gameStats(id);
-      return h('button', { class: 'gametile', onclick: () => startGame(id) },
-        h('b', null, t(GAMES[id].key)), h('span', null, t(GAMES[id].sub)),
-        h('span', { class: 'rec' }, st.best ? t('g_best') + ': ' + st.best : t('g_new')));
-    })));
+    h('div', { class: 'row between' }, h('h2', null, t('g_mix')), h('span', { class: 'note' }, t('games_sub'))),
+    h('p', { class: 'note' }, t('g_mix_sub')),
+    h('div', { class: 'row between' },
+      h('span', { class: 'rec' }, st.best ? t('g_best') + ': ' + st.best : t('g_new')),
+      primary(t('g_go'), () => startGame('mix'))));
 }
 
 /* ============================ WEEKLY REPORT ============================ */
