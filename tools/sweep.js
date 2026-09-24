@@ -31,7 +31,7 @@ window.__log = []; window.__done = false;
     RUN = null;
     try { startGame('mix'); await sleep(60); document.querySelector('[data-primary]').click(); await sleep(200); stopVoice(); GAME.t0 -= 61000; await sleep(300); n++;
       if (!document.querySelector('.hero')) log.push('NO END ' + tag + ' game'); } catch (e) { log.push('THROW ' + tag + ' game: ' + e.message); }
-    GAME = null; stopListen(); P.weekSeen = null;
+    GAME = null; EAR.stop(); P.weekSeen = null;
     for (const tab of ['today','words','progress']) { try { TAB = tab; RUN = null; render(); n++; } catch (e) { log.push('THROW ' + tag + ' tab ' + tab + ': ' + e.message); } }
     const bad = document.body.textContent.includes('[object') || document.body.textContent.includes('undefined');
     log.push(tag + ' screens ' + n + (bad ? ' | STRAY TEXT ([object / undefined) on page' : ''));
