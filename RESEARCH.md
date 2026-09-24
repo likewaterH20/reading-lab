@@ -23,9 +23,11 @@ practice across hundreds of studies. The app uses FSRS-5, an open model fitted
 on millions of real reviews, targeting 90% recall. Cepeda et al. 2006,
 *Psychological Bulletin*; Ye, Su & Cao 2022, *KDD*; open-spaced-repetition/fsrs4anki.
 
-**Mix the kinds.** Interleaved practice beats blocked practice for later
-discrimination. New items rotate job word, shortcut, false friend, sentence.
-Rohrer & Taylor 2007, *Instructional Science*; Kornell & Bjork 2008, *Psych Science*.
+**Mix the kinds.** New items rotate job word, shortcut, false friend, sentence.
+Interleaving helps with similar-looking categories (Rohrer & Taylor 2007;
+Kornell & Bjork 2008), but a meta-analysis found no benefit for learning words
+(Brunmair & Richter 2019). Here it is a design choice to keep sessions varied,
+not a proven learning gain.
 
 **No self-grading.** The grade comes from what you did: first try, slow replay,
 miss. People misjudge their own learning. Bjork, Dunlosky & Kornell 2013,
