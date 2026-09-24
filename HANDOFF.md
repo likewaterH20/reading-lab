@@ -28,6 +28,18 @@ Typing tests need real `Return` key presses; a newline inside typed text is drop
 
 ## What is built and verified in the pane
 
+- **Bug sweep, 3 rounds (2026-09-23).** Two code reviews (17 + 15 findings, all
+  fixed and re-verified), a scripted sweep of 368 screens (4 user types) with 0
+  errors, a bot that played 9 full sessions start to finish with no stuck
+  screens, and content checks: 0 missing clips (4,538), 0 misaligned read-alongs
+  (622). Commits d53d4ae and 16965d7.
+- **Reading test = read aloud** (words right a minute vs the grade's oral
+  target), silent timed read only without a mic. Matcher understands numbers
+  and re-finds its place after a skipped line. Done needs 90% of the passage;
+  a second Done accepts 60% or more, less falls back to the timed read.
+- **24 industries, 96 Life facts** (voiced questions and answers), one simple
+  font everywhere (Atkinson Hyperlegible), respelling uses "dj" for the j sound.
+
 - **Home = Daily + Play.** 13 levels (Grade 1 to College) on a map. Each level
   is a word round plus that grade's reading test (26 v4 passages, FK-gated in
   `build/make_content.py`). Pass = speed target AND 2 of 3; well above target
