@@ -380,15 +380,19 @@ function liveRead(para, onError) {
   const want = spans.map(sp => norm(sp.textContent).split(' '));
   const hit = new Array(spans.length).fill(false);
   let kept = '', live = '', stopped = false, failed = false;
+  const same = (k, w) => { const tw = want[k][want[k].length - 1]; return tw === w || want[k].includes(w) || (tw.length > 3 && lev(tw, w) <= 1); };
   const align = () => {
     hit.fill(false);
     let p = 0;
-    for (const w of norm(kept + ' ' + live).split(' ').filter(Boolean)) {
-      for (let k = p; k < Math.min(p + 4, spans.length); k++) {
-        const tw = want[k][want[k].length - 1];
-        if (tw === w || want[k].includes(w) || (tw.length > 3 && lev(tw, w) <= 1)) { hit[k] = true; p = k + 1; break; }
-      }
-    }
+    const heard = norm(kept + ' ' + live).split(' ').filter(Boolean);
+    heard.forEach((w, hi) => {
+      for (let k = p; k < Math.min(p + 4, spans.length); k++) if (same(k, w)) { hit[k] = true; p = k + 1; return; }
+      /* lost the place (a skipped line, a missed stretch): find it again further
+         on, where this word AND the next heard word both match in order */
+      const nx = heard[hi + 1];
+      if (!nx) return;
+      for (let k = p + 4; k < spans.length - 1; k++) if (same(k, w) && same(k + 1, nx)) { hit[k] = true; p = k + 1; return; }
+    });
     spans.forEach((sp, i) => { sp.classList.toggle('said', hit[i]); sp.classList.toggle('here', i === p); });
   };
   const recog = new SR();
@@ -398,7 +402,7 @@ function liveRead(para, onError) {
     for (let i = 0; i < e.results.length; i++) (e.results[i].isFinal ? (fin += e.results[i][0].transcript + ' ') : (inter += e.results[i][0].transcript + ' '));
     live = fin + inter; recog._fin = fin; align();
   };
-  recog.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { failed = true; stopped = true; if (onError) onError(e.error); } };
+  recog.onerror = e => { if (['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(e.error)) { failed = true; stopped = true; if (onError) onError(e.error); } };
   recog.onend = () => {
     kept += ' ' + (recog._fin || ''); live = ''; recog._fin = '';
     if (!stopped) try { recog.start(); } catch {}
@@ -406,7 +410,7 @@ function liveRead(para, onError) {
   try { recog.start(); } catch { failed = true; if (onError) onError('start'); }
   return {
     /* how far the reader got, without stopping */
-    peek() { return { reached: hit.lastIndexOf(true) + 1, all: spans.length }; },
+    peek() { return { reached: hit.lastIndexOf(true) + 1, all: spans.length, failed }; },
     stop() {
       stopped = true; try { recog.stop(); } catch {}
       /* only words before the last one heard count as missed; the rest were not reached */
@@ -418,7 +422,19 @@ function liveRead(para, onError) {
 }
 
 /* ============================ TEXT COMPARISON ============================ */
-const norm = x => String(x).toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+/* numbers as words, so "7" heard or typed matches "seven" in the text */
+const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve',
+  'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+function spellNum(n) {
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
+  if (n < 1000) return ONES[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' ' + spellNum(n % 100) : '');
+  if (n < 10000) return spellNum(Math.floor(n / 1000)) + ' thousand' + (n % 1000 ? ' ' + spellNum(n % 1000) : '');
+  return String(n);
+}
+const norm = x => String(x).toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]+/g, ' ')
+  .replace(/\b\d{1,4}\b/g, d => spellNum(+d)).replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
 function lev(a, b) {
   const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
   for (let j = 1; j <= n; j++) d[0][j] = j;

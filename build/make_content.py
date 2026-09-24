@@ -123,7 +123,9 @@ for r in C.SHORTCUTS:
               "freq": round(freq(en), 8), "say": respell(en)}
         check(it["say"] is not None, "no respelling for cognate " + en)
         items.append(it); ids.append(it["id"])
-    shortcuts.append({"id": r["id"], "es_end": r["es_end"], "en_end": r["en_end"], "note": r["note"], "items": ids})
+    shortcuts.append({"id": r["id"], "es_end": r["es_end"], "en_end": r["en_end"], "note": r["note"],
+                      "note_es": r.get("note_es", ""), "same_stress": r.get("same_stress", False), "items": ids})
+    check(not r["note"] or r.get("note_es"), "rule note needs Spanish: " + r["id"])
 
 traps = []
 for es, looks, looks_means, real in C.TRAPS:
@@ -220,6 +222,8 @@ for it in items:
         want("en", it["en"], False, True); want("en", it["en"], True)
     if k == "fact":
         want("en", it["en"], False, True); want("en", it["en"], True); want("es", it["es"])
+        want("en", it["q"])
+        for o in it["a"]: want("en", o)
 for g in C.STARTER: want("es", g["es"]); want("en", g["en"])
 for lv in levels:
     for ps in lv["passages"]:

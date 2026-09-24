@@ -67,6 +67,7 @@ function render() {
         s('path', { d: 'M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round' })),
       h('span', { class: 'pf-label' }, t('profile')))
   ] : null);
+  document.documentElement.lang = (P && P.lang) || (OB && OB.lang) || 'en';
   if (!P) return onboarding();
   if (RUN) return runScreen();
   if (TAB === 'words') return wordsScreen();
@@ -111,7 +112,7 @@ function sayLike(it) {
   return h('div', { class: 'saylike' },
     h('span', { class: 'lbl' }, t('say_like')),
     h('span', { class: 'rs', translate: 'no' }, it.say.split(/([ -])/).map(p =>
-      /[A-ZÆɅ]/.test(p) && p.length > 1 ? h('b', null, p.toLowerCase()) : p)));
+      /[A-ZÆɅ]/.test(p) && it.say.includes('-') ? h('b', null, p.toLowerCase()) : p)));
 }
 /* for starter words: light up the letters that make this group's sound */
 const SOUND_RX = { ae: /a/, ih: /i/, aa: /o/, uh: /u/, eh: /e/, sh: /sh/, ch: /ch/, th: /th/, ee: /ee/,
@@ -217,7 +218,7 @@ function placement(tl) {
   say('en', it.en);
   screen(h('div', { class: 'eyebrow' }, tl('place_title') + ' · ' + (st.i + 1) + ' / ' + st.pick.length),
     h('h2', null, tl('place_q')),
-    h('div', { class: 'listen' }, h('button', { class: 'play', onclick: () => say('en', it.en), 'aria-label': 'play' }, speakerIcon())),
+    h('div', { class: 'listen' }, h('button', { class: 'play', onclick: () => say('en', it.en), 'aria-label': tl('replay') }, speakerIcon())),
     inp,
     h('div', { class: 'actions' }, btn(tl('skip'), () => next(false)), primary(tl('check'), () => next(norm(inp.value) === norm(it.en)))));
   inp.focus();
@@ -385,7 +386,8 @@ function startLevel(g) {
   const now = Date.now();
   const ids = levelItems(g).filter(id => canRead() || ['word', 'fact'].includes(ITEMS[id].kind));
   const fresh = ids.filter(id => !started(id)).slice(0, 6);
-  const weak = ids.filter(started).sort((a, b) => FSRS.retrievability(CARDS[a], now) - FSRS.retrievability(CARDS[b], now)).slice(0, 8 - fresh.length);
+  /* words already reviewed today are left out, so replaying cannot farm 'owned' */
+  const weak = ids.filter(id => started(id) && today(new Date(CARDS[id].last)) !== today()).sort((a, b) => FSRS.retrievability(CARDS[a], now) - FSRS.retrievability(CARDS[b], now)).slice(0, 8 - fresh.length);
   const q = rr([fresh.map(id => ({ id, mode: 'new' })), weak.map(id => ({ id, mode: 'review' }))]);
   if (canRead()) q.push({ read: g });
   startRun(decorate(q));
@@ -479,7 +481,7 @@ function finishItem(host, my, ms = 1100) {
 /* ---------- shared pieces of a phase ---------- */
 function listenRow(play, playSlow) {
   return h('div', { class: 'listen' },
-    h('button', { class: 'play', onclick: play, 'aria-label': 'play' }, speakerIcon()),
+    h('button', { class: 'play', onclick: play, 'aria-label': t('replay') }, speakerIcon()),
     playSlow ? btn(t('slow'), playSlow, 'ghost') : null);
 }
 /* a picture pairs the word with its meaning (dual coding) */
@@ -591,7 +593,7 @@ const PHASES = {
       if (graded) return; graded = true;
       if (isSent) {
         const m = ctx.data.mel;
-        ctx.grade(m == null ? 3 : m >= 70 ? 3 : 2, m != null ? { mel: m } : {});
+        ctx.grade(m == null ? 2 : m >= 70 ? 3 : 2, m != null ? { mel: m } : {});
         finishItem(host, my, 300);
       } else ctx.next();
     };
@@ -749,7 +751,7 @@ const PHASES = {
         ctx.grade(missed ? 1 : 3, { ok: !missed, w: 1 });
         mount(host, h('div', { class: 'eyebrow ok' }, t('right')),
           h('div', { class: 'pair' }, h('span', { class: 'es' }, it.es), h('span', { class: 'arrow' }, '→')),
-          wordBlock(it, true, false), h('p', { class: 'note' }, t('sc_stress')));
+          wordBlock(it, true, false), rule.same_stress ? null : h('p', { class: 'note' }, t('sc_stress')));
         say('en', it.en).then(() => alive(my) && finishItem(host, my, 900));
         return;
       }
@@ -786,9 +788,20 @@ const PHASES = {
         sayAlong(it.en, sentEl).then(() => alive(my) && finishItem(host, my, o.ok ? 600 : 1400));
       }, o.ok ? 500 : 1200);
     };
+    const btns = opts.map(o => h('button', { class: 'choice', onclick: ev => pick(o, ev.currentTarget) }, h('b', null, o.a)));
     mount(host, h('div', { class: 'eyebrow' }, t('life') + ' · ' + (tp[P.lang] || tp.en)),
       h('h2', { class: 'q' }, it.q),
-      h('div', { class: 'choices' }, opts.map(o => h('button', { class: 'choice', onclick: ev => pick(o, ev.currentTarget) }, h('b', null, o.a)))));
+      h('div', { class: 'choices' }, btns));
+    /* the question is read out; people still learning to read also hear every answer */
+    (async () => {
+      await say('en', it.q); if (!alive(my) || done) return;
+      if (P.level !== 'beginner') return;
+      for (let i = 0; i < opts.length; i++) {
+        await wait(250); if (!alive(my) || done) return;
+        btns[i].classList.add('lit'); await say('en', opts[i].a); btns[i].classList.remove('lit');
+        if (!alive(my) || done) return;
+      }
+    })();
   },
 
   /* false friend: does the look-alike mean what Spanish says it means? */
@@ -839,7 +852,8 @@ async function readFlow(host, g) {
   const L = CONTENT.levels[g - 1], ps = pickPassage(L);
   const target = P.level === 'beginner' ? L.oral : L.silent;
   const head = () => [h('div', { class: 'eyebrow' }, t('rd_title') + ' · ' + gradeName(g)), h('h2', null, ps.title)];
-  const targetLine = h('p', { class: 'note' }, t('rd_target', { w: target }));
+  /* show the target that will actually be used: out loud if the mic can listen */
+  const targetLine = h('p', { class: 'note' }, t('rd_target', { w: SR && !MIC.denied && !MIC.srOff ? L.oral : target }));
 
   const solo = () => {
     RUN.screen++; const me = RUN.screen;
@@ -847,7 +861,7 @@ async function readFlow(host, g) {
     const tooSoon = h('p', { class: 'note warn' });
     const t0 = performance.now();
     mount(host, ...head(), steps(3), h('p', { class: 'note' }, t('rd_solo')), para, tooSoon, h('div', { class: 'actions' }, primary(t('rd_done'), () => {
-      if (RUN.screen !== me) return;
+      if (!alive(me)) return;
       const wpm = Math.round(ps.words / ((performance.now() - t0) / 60000));
       /* faster than anyone reads: they did not read it yet, so keep the clock running */
       if (wpm > WPM_CEILING) { tooSoon.textContent = t('rd_too_soon'); return; }
@@ -861,12 +875,13 @@ async function readFlow(host, g) {
     const q = ps.questions[qi];
     mount(host, h('div', { class: 'eyebrow' }, ps.title + ' · ' + (qi + 1) + ' / 3'), h('h2', null, q.q),
       h('div', { class: 'choices' }, q.a.map((a, ai) => h('button', { class: 'choice', onclick: ev => {
-        if (RUN.screen !== me) return;
+        if (!alive(me)) return;
         const ok = ai === q.correct;
         ev.currentTarget.classList.add(ok ? 'right' : 'wrong');
         if (!ok) host.querySelectorAll('.choice')[q.correct].classList.add('right');
         RUN.screen++;
-        setTimeout(() => RUN && questions(wpm, qi + 1, c + (ok ? 1 : 0)), ok ? 600 : 1300);
+        const run = RUN;
+        setTimeout(() => RUN === run && questions(wpm, qi + 1, c + (ok ? 1 : 0)), ok ? 600 : 1300);
       } }, h('b', null, a)))));
   };
   /* The measure: if you read it out loud, words right a minute against the
@@ -887,6 +902,7 @@ async function readFlow(host, g) {
       else { P.grade = Math.min(NLEV, P.grade + jump); opened = P.grade; msg = t(jump === 2 ? 'rd_jump' : 'rd_pass', { g: gradeName(P.grade) }); }
     } else if (pass) msg = t('right');
     else if (speed < tgt && c >= 2) msg = t('rd_slow', { w: speed, t: tgt });
+    else if (speed < tgt) msg = t('rd_both', { w: speed, t: tgt, c });
     else msg = t('rd_missed', { c });
     /* the line going up: your last try on this same passage, same way of reading */
     const prev = LOG.filter(x => x.kind === 'read' && x.pid === ps.id && (x.mode || 'silent') === mode).pop();
@@ -904,7 +920,7 @@ async function readFlow(host, g) {
         h('div', { class: 'stat big' }, h('b', null, c + '/3'), h('span', null, t('rd_right'))),
         oral ? h('div', { class: 'stat big' }, h('b', null, oral.acc + '%'), h('span', null, t('rd_acc'))) : null),
       h('p', { class: 'note' }, t('rd_target', { w: tgt })),
-      prev && !tooFast ? h('p', { class: 'note' }, t('rd_history', { a: prev.speed || prev.wpm, b: speed })) : null,
+      prev && !tooFast ? h('p', { class: 'note' }, t(oral ? 'rd_history_oral' : 'rd_history', { a: prev.speed || prev.wpm, b: speed })) : null,
       h('p', { class: 'lead' + (opened ? ' opened' : '') }, msg),
       h('div', { class: 'actions' }, btn(t('rd_model'), () => sayAlong(ps.text, para)), primary(t('next'), () => { stopVoice(); nextEntry(); })),
       para);
@@ -920,30 +936,35 @@ async function readFlow(host, g) {
     const para = passageEl(ps);
     mount(host, ...head(), steps(1), targetLine, para,
       h('div', { class: 'actions' }, btn(t('skip'), () => { stopVoice(); aloud(); }, 'ghost'), primary(t('next'), () => { stopVoice(); aloud(); })));
-    await speakPhase('rd_listen'); if (RUN.screen !== me) return;
+    await speakPhase('rd_listen'); if (!alive(me)) return;
     await sayAlong(ps.text, para);
-    if (RUN && RUN.screen === me) autoNext(host, () => RUN && RUN.screen === me && aloud(), 900);
+    if (alive(me)) autoNext(host, () => alive(me) && aloud(), 900);
   };
   const aloud = () => {
     RUN.screen++; const me = RUN.screen;
-    if (!SR || MIC.denied) return solo();
+    if (!SR || MIC.denied || MIC.srOff) return solo();
     const para = passageEl(ps);
     const note = h('p', { class: 'note' }, t('rd_aloud_hint'));
     const res = h('div', { class: 'result' });
-    let reader = null, t0 = 0;
+    let reader = null, t0 = 0, asked = false;
     const go = primary(t('rd_aloud_go'), () => {
       if (reader) return finish();
       stopVoice();
       t0 = performance.now();
-      reader = liveRead(para, () => { MIC.denied = true; note.textContent = t('rd_aloud_off'); });
+      reader = liveRead(para, err => { if (err === 'not-allowed' || err === 'audio-capture') MIC.denied = true; else MIC.srOff = true; note.textContent = t('rd_aloud_off'); });
       RUN.reader = reader; // so Close can stop the microphone
       go.textContent = t('rd_done');
     });
     const finish = () => {
-      if (RUN.screen !== me) return;
+      if (!alive(me)) return;
       /* the test counts only a full reading: reaching 90% of the words */
       const pk = reader.peek();
-      if (pk.reached > 0 && pk.reached < pk.all * 0.9) { note.textContent = t('rd_read_all'); note.classList.add('warn'); return; }
+      if (pk.failed) { reader.stop(); reader = null; RUN.reader = null; oral = null; return solo(); }
+      if (pk.reached > 0 && pk.reached < pk.all * 0.9) {
+        if (!asked) { asked = true; note.textContent = t('rd_read_all') + ' ' + t('rd_accept'); note.classList.add('warn'); return; }
+        /* a second Done accepts it only past 60% of the passage; less is not a reading */
+        if (pk.reached < pk.all * 0.6) { reader.stop(); reader = null; RUN.reader = null; oral = null; return solo(); }
+      }
       const r = reader.stop(); reader = null; RUN.reader = null;
       if (r.failed || !r.right) { MIC.denied = MIC.denied || r.failed; return solo(); }
       const min = (performance.now() - t0) / 60000;
@@ -984,8 +1005,8 @@ async function introCard(host, e) {
       h('p', { class: 'lead' }, t('sc_body', { a: r.es_end, b: r.en_end })),
       h('div', { class: 'pairs', translate: 'no' }, pairs.map(p => h('button', { class: 'pairrow', onclick: () => say('en', p.en) },
         h('span', { class: 'es' }, p.es), h('span', { class: 'en' }, p.en), h('span', { class: 'rs' }, sayLike(p))))),
-      r.note ? h('p', { class: 'note' }, r.note) : null,
-      h('p', { class: 'note' }, t('sc_stress')),
+      r.note ? h('p', { class: 'note' }, P.lang === 'es' && r.note_es ? r.note_es : r.note) : null,
+      r.same_stress ? null : h('p', { class: 'note' }, t('sc_stress')),
       h('div', { class: 'actions' }, nb));
     for (const p of pairs.slice(0, 3)) {
       if (!alive(my)) return; await say('es', p.es); if (!alive(my)) return; await wait(200); if (!alive(my)) return; await say('en', p.en); await wait(300); if (!alive(my)) return;
@@ -1077,7 +1098,7 @@ function endScreen(r) {
 let WFILTER = 'all';
 function wordsScreen() {
   const groups = [['all', t('w_filter_all')], ...P.inds.map(id => { const x = CONTENT.industries.find(i => i.id === id); return ['ind:' + id, x[P.lang] || x.en]; }),
-    ...(P.lang === 'es' ? [['cog', t('sc_title')], ['trap', t('trap_title')]] : []), ['fact', t('life')], ['sent', t('melody')], ['core', 'Top 300']];
+    ...(P.lang === 'es' ? [['cog', t('sc_title')], ['trap', t('trap_title')]] : []), ['fact', t('life')], ['sent', t('melody')], ['core', t('w_top')]];
   const pass = it => WFILTER === 'all' ? true : WFILTER === 'fact' ? it.kind === 'fact' : WFILTER === 'cog' ? it.kind === 'cog' : WFILTER === 'trap' ? it.kind === 'trap'
     : WFILTER === 'sent' ? it.kind === 'sent' : WFILTER === 'core' ? !!it.rank : (it.src || []).includes(WFILTER);
   const now = Date.now();

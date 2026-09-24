@@ -85,7 +85,9 @@ CORE_GLOSS = {
 # teaches these as nouns (a PER-mit, an UP-date) or in the relaxed American
 # form (DIF-rent, RES-trant). Index into pronouncing.phones_for_word().
 PRON_PICK = {"concrete": 1, "permit": 1, "refund": 1, "discharge": 1, "discount": 1,
-             "update": 1, "restaurant": 1, "different": 1, "difference": 1}
+             "update": 1, "restaurant": 1, "different": 1, "difference": 1,
+             # same spelling, two sounds: the app teaches leer, vivir, usar, cliente potencial
+             "read": 1, "live": 1, "use": 1, "lead": 1}
 
 # ---------- Starter: sounds for people who cannot read English yet ----------
 # Each sound starts from something a Spanish speaker already says.
@@ -111,8 +113,8 @@ STARTER = [
  {"id": "ch", "letters": "ch", "es": "La c y la h juntas suenan como la ch de chocolate.",
   "en": "C and h together make the ch in chair.",
   "words": [["chair", "silla"], ["check", "revisar"], ["lunch", "almuerzo"], ["much", "mucho"]]},
- {"id": "th", "letters": "th", "es": "La t y la h: pon la punta de la lengua entre los dientes y sopla. No es t ni d.",
-  "en": "T and h: tongue between your teeth, then blow.",
+ {"id": "th", "letters": "th", "es": "La t y la h: pon la punta de la lengua entre los dientes. En this y that la voz vibra. En three y think solo sale aire.",
+  "en": "T and h: tongue between your teeth. In this and that your voice buzzes. In three and think only air comes out.",
   "words": [["this", "esto"], ["that", "eso"], ["three", "tres"], ["think", "pensar"]]},
  {"id": "ee", "letters": "ee", "es": "Dos e juntas suenan como una i larga. See suena si.",
   "en": "Two e's together make a long ee.",
@@ -145,9 +147,9 @@ SHORTCUTS = [
   "pairs": [["artista", "artist"], ["dentista", "dentist"], ["turista", "tourist"], ["pianista", "pianist"], ["especialista", "specialist"]]},
  {"id": "ismo", "es_end": "-ismo", "en_end": "-ism", "note": "",
   "pairs": [["turismo", "tourism"], ["racismo", "racism"], ["optimismo", "optimism"], ["capitalismo", "capitalism"], ["realismo", "realism"]]},
- {"id": "ble", "es_end": "-ble", "en_end": "-ble", "note": "English often doubles the consonant: posible, possible.",
+ {"id": "ble", "es_end": "-ble", "en_end": "-ble", "note": "English often doubles the consonant: posible, possible.", "note_es": "El inglés suele duplicar la consonante: posible, possible.",
   "pairs": [["posible", "possible"], ["terrible", "terrible"], ["flexible", "flexible"], ["horrible", "horrible"], ["visible", "visible"]]},
- {"id": "ico", "es_end": "-ico", "en_end": "-ic", "note": "",
+ {"id": "ico", "es_end": "-ico", "en_end": "-ic", "same_stress": True, "note": "Same stress in both: PÚblico, PUBlic.", "note_es": "El acento queda igual en los dos: PÚblico, PUBlic.",
   "pairs": [["público", "public"], ["básico", "basic"], ["eléctrico", "electric"], ["tráfico", "traffic"], ["plástico", "plastic"]]},
  {"id": "encia", "es_end": "-encia", "en_end": "-ence", "note": "",
   "pairs": [["diferencia", "difference"], ["experiencia", "experience"], ["ciencia", "science"], ["paciencia", "patience"], ["violencia", "violence"]]},
@@ -159,13 +161,13 @@ SHORTCUTS = [
   "pairs": [["necesario", "necessary"], ["salario", "salary"], ["diccionario", "dictionary"], ["vocabulario", "vocabulary"], ["contrario", "contrary"]]},
  {"id": "ente", "es_end": "-ente, -ante", "en_end": "-ent, -ant", "note": "",
   "pairs": [["presidente", "president"], ["importante", "important"], ["diferente", "different"], ["restaurante", "restaurant"], ["paciente", "patient"]]},
- {"id": "es", "es_end": "es-", "en_end": "s-", "note": "English drops the e at the start.",
+ {"id": "es", "es_end": "es-", "en_end": "s-", "note": "English drops the e at the start.", "note_es": "El inglés quita la e del inicio.",
   "pairs": [["estudiante", "student"], ["especial", "special"], ["estado", "state"], ["estilo", "style"], ["espacio", "space"]]},
- {"id": "ar", "es_end": "-ar, -er, -ir", "en_end": "(nada)", "note": "Many verbs just drop the ending.",
+ {"id": "ar", "es_end": "-ar, -er, -ir", "en_end": "(nada)", "note": "Many verbs just drop the ending.", "note_es": "Muchos verbos solo pierden la terminación.",
   "pairs": [["visitar", "visit"], ["depender", "depend"], ["insistir", "insist"], ["preferir", "prefer"], ["aceptar", "accept"]]},
  {"id": "izar", "es_end": "-izar", "en_end": "-ize", "note": "",
   "pairs": [["organizar", "organize"], ["analizar", "analyze"], ["memorizar", "memorize"], ["autorizar", "authorize"], ["utilizar", "utilize"]]},
- {"id": "or", "es_end": "-or", "en_end": "-or", "note": "Same spelling, different stress.",
+ {"id": "or", "es_end": "-or", "en_end": "-or", "note": "Same spelling, different stress.", "note_es": "Se escribe igual, pero el acento cambia.",
   "pairs": [["doctor", "doctor"], ["color", "color"], ["error", "error"], ["motor", "motor"], ["actor", "actor"]]},
  {"id": "ia", "es_end": "-ía", "en_end": "-y", "note": "",
   "pairs": [["energía", "energy"], ["tecnología", "technology"], ["compañía", "company"], ["economía", "economy"], ["batería", "battery"]]},
