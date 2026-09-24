@@ -75,6 +75,14 @@ window.__simDone = false; window.__simReport = null;
       if (!ok) { await sleep(40); const again = $('input.answer'); if (again) typeInto(again, target); }
       return 'type ' + (ok ? 'ok' : 'miss');
     }
+    if (area && it && /^(Use it|Úsala)$/i.test(($('main .eyebrow') || {}).textContent || '')) {
+      /* the output step: Mateo writes his own sentence; sometimes too short first */
+      const short = chance(0.25);
+      area.value = short ? 'I ' + it.en + ' today.' : 'At work I ' + (it.en.includes(' ') ? 'talk about the ' + it.en : 'use the word ' + it.en) + ' with my boss every day.';
+      area.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      if (short) { await sleep(40); const again = $('textarea.answer'); if (again) { again.value = 'At work I use the word ' + it.en + ' with my boss every day.'; again.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); } }
+      return 'use ' + (short ? 'short-then-ok' : 'ok');
+    }
     if (area && it) {
       const target = it.kind === 'sent' ? it.en : it.sentence;
       const ok = chance(0.65 * knows(it) + 0.2);

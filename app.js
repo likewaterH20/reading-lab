@@ -91,6 +91,7 @@ function autoNext(host, fn, ms = 1300) {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.shiftKey) return;
   if (e.target && e.target.tagName === 'INPUT' && e.target.dataset.enter) return; // input handles itself
+  if (e.target && e.target.tagName === 'TEXTAREA') return; // text areas handle Enter themselves (a double check graded twice)
   const b = document.querySelector('[data-primary]:not([disabled])');
   if (b) { e.preventDefault(); b.click(); }
 });
@@ -164,7 +165,7 @@ function onboarding() {
         choose(tl('ind_none'), null, () => { OB.inds = []; go(OB.level === 'beginner' ? 'primer' : 'place'); }, false)),
       h('div', { class: 'actions' }, primary(tl('start') === 'Start' ? 'Next' : 'Siguiente', () => go(OB.level === 'beginner' ? 'primer' : 'place'))));
   }
-  /* "When will you practise?" was removed at his word: it is a daily tool, no question needed */
+  /* "When will you practise?" was removed at his word: it is a daily tool, no question needed. Unreachable, kept for the strings it references. */
   if (OB.step === 'when') {
     if (OB.level === 'beginner') say(OB.lang, tl('when_q'));
     const pick = w => { OB.when = w; go(OB.level === 'beginner' ? 'primer' : 'place'); };
@@ -552,6 +553,12 @@ function gradeItem(ctx, g, extra) {
 function finishItem(host, my, ms = 1100) {
   autoNext(host, () => { if (alive(my)) nextEntry(); }, ms);
 }
+/* a right answer ends the item, unless a "use it" step is queued after it */
+function afterRight(host, ctx, my, ms = 1100) {
+  if (ctx.phases[ctx.phases.length - 1] === 'use' && ctx.phases[ctx.pi] !== 'use') {
+    autoNext(host, () => { if (!alive(my)) return; ctx.pi = ctx.phases.length - 2; ctx.next(); }, ms);
+  } else finishItem(host, my, ms);
+}
 
 /* ---------- shared pieces of a phase ---------- */
 function listenRow(play, playSlow) {
@@ -608,7 +615,7 @@ const PHASES = {
       if (isRight(v, it.en)) {
         mount(host, h('div', { class: 'eyebrow ok' }, t('right')), wordBlock(it));
         ctx.grade(slow ? 3 : 4, { ok: true });
-        finishItem(host, my, 1400);
+        afterRight(host, ctx, my, 1400);
       } else {
         mount(host, h('div', { class: 'eyebrow' }, t('ph_pre')), letterDiff(it.en, v));
         autoNext(host, () => alive(my) && ctx.next(), 1400);
@@ -773,7 +780,7 @@ const PHASES = {
         mount(host, h('div', { class: 'eyebrow ok' }, t('right')), wordBlock(it));
         ctx.grade(g, { ok: !missed, w: 1, pat: ctx.data.pat });
         say('en', it.en);
-        return finishItem(host, my, 1200);
+        return afterRight(host, ctx, my, 1200);
       }
       if (!missed) ctx.data.pat = spellPatterns(it.en, v);
       missed = true;
@@ -811,7 +818,7 @@ const PHASES = {
             ctx.grade(g, { ok: errors === 0, w: 1 });
             mount(host, h('div', { class: 'eyebrow ok' }, t('right')), wordBlock(it));
             say('en', it.en);
-            finishItem(host, my, 1400);
+            afterRight(host, ctx, my, 1400);
           }
         } else {
           errors++; b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');

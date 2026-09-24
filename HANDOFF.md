@@ -81,12 +81,19 @@ only until he says "go"; the 4400 mirror carries the OLD stylesheet
   game. Now UNUSED; keep or wire into the say phase, do not delete blindly.
 - **Weekly report**: this week vs last, what got better, focus in plain words,
   stumbled words. Home once per new week; always in Progress.
-- **Content**: 13 levels (Nivel 1-13 with plain labels) x 2 passages; 25
-  industries x 20 terms (Car Sales added 9/24) with sentences and Spanish glosses; 200+ memory tricks;
+- **Use it** (output step, his "best approach" ask 9/24): two of the day's
+  new words end with a sentence of your own (5+ words, must contain the
+  word), then the model sentence for comparison. LOG kind `use`; weekly row.
+- **Content**: 13 levels (Nivel 1-13 with plain labels) x 4 passages (52;
+  the extra 26 live in `build/levels_more.js`, 5 questions inline, merged by
+  make_content); 26 industries x 20 terms (Car Sales + Educated English =
+  Academic Word List, added 9/24) with sentences and Spanish glosses; 200+ memory tricks;
   18 Spanish-English shortcut rules; 12 false friends; 20 melody sentences;
   96 Life facts (money, work, health, safety, home, rights, civics, food,
   online safety, driving, science, manners); 13 beginner sound groups; every
-  passage word as a pronunciation item. 6,456 clips, 658 timed texts.
+  passage word as a pronunciation item. 7,646 clips, 684 timed texts.
+- Onboarding: language, can-you-read, industries, then placement (readers)
+  or primer (beginners). The "when will you practise" step is gone.
 
 ## Files
 
