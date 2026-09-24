@@ -395,8 +395,9 @@ function todayScreen() {
       nothing
         ? h('p', { class: 'lead' }, t('done_today', { w: whenNext() }))
         : [h('p', { class: 'note' }, plan),
-           h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))]),
-    canRead() ? dailyReadCard() : null,
+           h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))],
+      /* the daily read lives inside the same card: one "daily", one line, one small button */
+      canRead() ? dailyReadRow() : null),
     levelCard());
 }
 function levelTile(L) {

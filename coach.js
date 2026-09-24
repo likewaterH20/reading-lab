@@ -284,6 +284,15 @@ function todaysRead() {
   return CONTENT.daily[((n % CONTENT.daily.length) + CONTENT.daily.length) % CONTENT.daily.length];
 }
 const readsToday = rid => LOG.filter(x => x.kind === 'dailyread' && x.rid === rid && today(new Date(x.t)) === today());
+/* one line inside the Daily card: title, today's best, a small Read button */
+function dailyReadRow() {
+  const r = todaysRead(), done = readsToday(r.id);
+  const best = done.length ? Math.max(...done.map(x => x.speed)) : null;
+  const label = t('dr_title') + ' · ' + (r.kind === 'lyrics' ? t('dr_lyrics') + ' · ' : '') + r.title + (best ? ' · ' + t('dr_best', { w: best }) : '');
+  return h('div', { class: 'row between dr-row' },
+    h('span', { class: 'note' }, label),
+    btn(done.length ? t('dr_again') : t('dr_read'), () => startRun([{ dread: true }]), 'ghost small'));
+}
 function dailyReadCard() {
   const r = todaysRead(), done = readsToday(r.id);
   const best = done.length ? Math.max(...done.map(x => x.speed)) : null;
