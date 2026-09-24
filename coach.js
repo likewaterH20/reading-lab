@@ -289,7 +289,7 @@ function dailyReadCard() {
   const best = done.length ? Math.max(...done.map(x => x.speed)) : null;
   return h('div', { class: 'card dread' },
     h('div', { class: 'row between' }, h('h2', null, t('dr_title')), h('span', { class: 'note' }, t('dr_sub'))),
-    h('p', { class: 'lead' }, r.title),
+    h('p', { class: 'lead' }, (r.kind === 'lyrics' ? t('dr_lyrics') + ' · ' : '') + r.title),
     done.length ? h('p', { class: 'note' }, t('dr_attempt', { n: done.length }) + ' · ' + t('dr_best', { w: best })
       + (done.length > 1 ? ' · ' + done.map(x => x.speed).join(' → ') : '')) : null,
     h('div', { class: 'actions' }, primary(done.length ? t('dr_again') : t('dr_read'), () => startRun([{ dread: true }]))));

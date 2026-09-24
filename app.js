@@ -189,39 +189,64 @@ function finishOnboarding() {
 /* Readers prove what they already own, so nobody drills "the" for a week.
    Four words from each hundred of the core list; the highest hundred with
    three of four right gets seeded as known and spot-checked later. */
-function placement(tl) {
-  if (!OB.place) {
-    const bands = [[1, 100, 4], [101, 200, 5], [201, 300, 5]];
-    const pick = [];
-    bands.forEach(([a, b, min], bi) => {
-      const pool = CONTENT.core.map(id => ITEMS[id]).filter(it => it.rank >= a && it.rank <= b && it.en.length >= min);
-      for (let k = 0; k < 4; k++) pick.push({ id: pool[Math.floor((k + 0.5) * pool.length / 4)].id, band: bi });
-    });
-    OB.place = { pick, i: 0, right: [0, 0, 0] };
+/* PLACEMENT, about 30 seconds. A maze task: a sentence from a level with one
+   word missing and three choices (the standard quick measure of reading level,
+   Fuchs & Fuchs). Adaptive: right goes up two levels, wrong goes down one,
+   eight sentences, so it homes in on where reading starts to break. */
+const shuffle = a => a.slice().sort(() => Math.random() - 0.5);
+function mazeItem(g, usedSentences) {
+  const L = CONTENT.levels[g - 1];
+  const sents = L.passages.flatMap(p => p.text.split(/(?<=[.!?])\s+/)).filter(s => { const n = s.split(' ').length; return n >= 8 && n <= 24 && !usedSentences.has(s); });
+  for (const s of shuffle(sents)) {
+    const ws = s.split(' ');
+    const idx = ws.map((w, i) => i).filter(i => i > 0 && /^[a-z]{4,}[.,!?;:]?$/.test(ws[i]));
+    if (!idx.length) continue;
+    const i = idx[Math.floor(Math.random() * idx.length)];
+    const word = ws[i].replace(/[.,!?;:]$/, ''), punct = ws[i].slice(word.length);
+    const low = s.toLowerCase();
+    const pool = [...new Set(CONTENT.items.filter(it => it.kind === 'word' && /^[a-z]+$/.test(it.en) && Math.abs(it.en.length - word.length) <= 1 && it.en !== word && !low.includes(it.en)).map(it => it.en))];
+    const ds = shuffle(pool).slice(0, 2);
+    if (ds.length < 2) continue;
+    usedSentences.add(s);
+    return { g, before: ws.slice(0, i).join(' '), after: punct + ' ' + ws.slice(i + 1).join(' '), word, opts: shuffle([word, ...ds]) };
   }
+  return null;
+}
+function placement(tl) {
+  const N = 8;
+  if (!OB.place) OB.place = { pos: 3, i: 0, right: [], wrong: [], used: new Set(), t0: Date.now() };
   const st = OB.place;
-  if (st.i >= st.pick.length) {
-    let top = -1;
-    st.right.forEach((r, bi) => { if (r >= 3) top = bi; });
-    const upto = [0, 100, 200, 300][top + 1];
+  if (st.i >= N) {
+    /* placed at the highest level read right with no level below it read wrong */
+    const okLevels = st.right.filter(g => !st.wrong.some(w => w < g));
+    const placed = okLevels.length ? Math.max(...okLevels) : 1;
+    const upto = [0, 100, 200, 300][Math.min(3, placed - 1)];
     let n = 0;
     CONTENT.core.forEach(id => { if (ITEMS[id].rank <= upto) { CARDS[id] = { ...FSRS.seed(), seeded: true }; n++; } });
-    OB.startGrade = [1, 2, 3, 4][top + 1];
+    OB.startGrade = placed;
     st.seeded = n;
-    return screen(h('h1', null, tl('place_title')),
-      h('p', { class: 'lead' }, (UI.place_done[OB.lang] || UI.place_done.en).replace('{n}', n)),
+    return screen(h('div', { class: 'eyebrow' }, tl('place_title')),
+      h('h1', null, tl('grade') + ' ' + placed),
+      h('p', { class: 'lead' }, tl('lv_' + placed)),
+      h('p', { class: 'note' }, (UI.place_done[OB.lang] || UI.place_done.en).replace('{n}', n)),
       h('div', { class: 'actions' }, primary(tl('start'), finishOnboarding)));
   }
-  const it = ITEMS[st.pick[st.i].id];
-  const next = ok => { if (ok) st.right[st.pick[st.i].band]++; st.i++; onboarding(); };
-  const inp = input(v => next(norm(v) === norm(it.en)));
-  say('en', it.en);
-  screen(h('div', { class: 'eyebrow' }, tl('place_title') + ' · ' + (st.i + 1) + ' / ' + st.pick.length),
+  let item = mazeItem(st.pos, st.used);
+  if (!item) { st.i = N; return placement(tl); }
+  const next = ok => {
+    (ok ? st.right : st.wrong).push(item.g);
+    st.pos = Math.max(1, Math.min(NLEV, st.pos + (ok ? (st.pos >= 10 ? 1 : 2) : -1)));
+    st.i++; onboarding();
+  };
+  const sentence = h('p', { class: 'sentence', translate: 'no', lang: 'en' }, item.before + ' ', h('span', { class: 'blank' }, '______'), item.after);
+  screen(h('div', { class: 'eyebrow' }, tl('place_title') + ' · ' + (st.i + 1) + ' / ' + N),
     h('h2', null, tl('place_q')),
-    h('div', { class: 'listen' }, h('button', { class: 'play', onclick: () => say('en', it.en), 'aria-label': tl('replay') }, speakerIcon())),
-    inp,
-    h('div', { class: 'actions' }, btn(tl('skip'), () => next(false)), primary(tl('check'), () => next(norm(inp.value) === norm(it.en)))));
-  inp.focus();
+    sentence,
+    h('div', { class: 'choices grid' }, item.opts.map(o => h('button', { class: 'choice', translate: 'no', lang: 'en', onclick: ev => {
+      ev.currentTarget.classList.add(o === item.word ? 'right' : 'wrong');
+      setTimeout(() => next(o === item.word), 250);
+    } }, h('b', null, o)))),
+    h('p', { class: 'note' }, tl('place_skip')));
 }
 
 /* ============================ LEVELS ============================
@@ -887,7 +912,7 @@ function passageEl(ps) {
       if (clipUrl('en', w, false)) say('en', w); else if (clipUrl('en', w.charAt(0).toUpperCase() + w.slice(1), false)) say('en', w.charAt(0).toUpperCase() + w.slice(1));
     });
   });
-  return h('p', { class: 'passage', translate: 'no', lang: 'en' }, spans);
+  return h('p', { class: 'passage' + (ps.kind === 'lyrics' ? ' lyrics' : ''), translate: 'no', lang: 'en' }, spans);
 }
 async function readFlow(host, g) {
   const my = RUN.screen;

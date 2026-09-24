@@ -158,8 +158,11 @@ function sayAlong(text, host, slow = false) {
 function wordSpans(text) {
   const tm = VOICE.timings[`en|${text}|norm`];
   const toks = text.split(/\s+/);
+  /* the real whitespace is kept between spans, so a lyric's line breaks survive (pre-line) */
+  const seps = text.match(/\s+/g) || [];
+  const sep = i => seps[i] != null ? seps[i] : ' ';
   /* the space sits outside the span so an underline or highlight stops at the word */
-  if (!tm) return toks.flatMap(w => [h('span', { class: 'w' }, w), ' ']);
+  if (!tm) return toks.flatMap((w, i) => [h('span', { class: 'w' }, w), sep(i)]);
   /* the voice can report "Third Street" as one boundary: group tokens to match */
   const out = []; let ti = 0;
   for (const b of tm) {
@@ -168,7 +171,7 @@ function wordSpans(text) {
     while (ti < toks.length && got.length < want.length) {
       grp.push(toks[ti]); got += toks[ti].replace(/[^\w']/g, '').toLowerCase(); ti++;
     }
-    out.push(h('span', { class: 'w' }, grp.join(' ')), ' ');
+    out.push(h('span', { class: 'w' }, grp.join(' ')), sep(ti - 1));
   }
   if (ti < toks.length) out.push(h('span', { class: 'w' }, toks.slice(ti).join(' ')));
   return out;

@@ -88,7 +88,7 @@ for g in C.STARTER:
                     "words": ["w:" + w[0] for w in g["words"]]})
 
 industries = []
-check(len(C.INDUSTRIES) == 24, "want 24 industries, have %d" % len(C.INDUSTRIES))
+check(len(C.INDUSTRIES) == 25, "want 25 industries, have %d" % len(C.INDUSTRIES))
 for ind in C.INDUSTRIES:
     check(len(ind["terms"]) == 20, "%s has %d terms, want 20" % (ind["id"], len(ind["terms"])))
     ids = []
@@ -187,7 +187,7 @@ for r in DR.DAILY_READS:
     has = [w for w in top100 if w in toks]
     covered |= set(has)
     daily.append({"id": r["id"], "title": r["title"], "text": r["text"], "words": len(r["text"].split()),
-                  "fk": round(fk, 1), "top100": has})
+                  "fk": round(fk, 1), "top100": has, "kind": r.get("kind", "text")})
 missing100 = [w for w in top100 if w not in covered]
 check(not missing100, "daily reads miss these top-100 words: %s" % missing100)
 
