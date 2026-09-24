@@ -1,81 +1,120 @@
-# READING LAB — handoff
+# READING LAB: handoff
 
-Paste this into a new chat to continue. Current as of 2026-09-23 (v5).
-Read `README.md` for how it runs and `RESEARCH.md` for why.
+Paste this into a new chat. Current as of 2026-09-24.
+Also read `CLAUDE.md` (rules, loaded automatically in this folder) and
+`RESEARCH.md` (evidence, graded honestly).
 
-## What it is
+## Start of every chat (5 minutes)
 
-One seven-minute daily session to read, say and write American English.
-Two audiences: Spanish-speaking bilinguals who want to sound American (Rafael),
-and adults who cannot read English yet. Industry vocabulary is picked at
-onboarding. Free, local, no accounts, neural voices (Andrew EN, Dalia ES).
+1. Recreate the two servers in the NEW session's scratchpad (it is wiped):
+   ```bash
+   SP="<this session's scratchpad>"
+   mkdir -p "$SP/site" "$SP/test/site"
+   # serve.py: SimpleHTTPRequestHandler on 127.0.0.1:4400, Cache-Control no-store,
+   # directory = $SP/site. test/serve.py: same on 4401, directory = $SP/test/site.
+   rsync -a --delete --exclude _v4 --exclude build --exclude .git \
+     "/Users/waterbox/Documents/(claude code) apps/reading-lab/" "$SP/site/"
+   ```
+   Run each `python3 serve.py` as a **background Bash process**. Update the
+   `reading-lab` entry in the apps folder's `.claude/launch.json`.
+2. Rebuild the build venv if you will touch content:
+   `python3 -m venv $SP/wf && $SP/wf/bin/pip install wordfreq pronouncing edge-tts`
+3. In the Browser pane, open `http://localhost:4401/?mute=1` and run:
+   ```js
+   for (const f of ['tools/mock-sr.js','tools/sweep.js']) (0,eval)(await (await fetch(f)).text());
+   (0,eval)(await (await fetch('tools/content-check.js')).text())
+   ```
+   Then poll `({done: __done, log: __log})`. Baseline on handoff: 4 profiles x
+   70 screens, `errors 0`; content check 0 missing, 0 misaligned.
 
-- Folder: `~/Documents/(claude code) apps/reading-lab/`
-- Runs on **http://localhost:4400** from a scratchpad mirror (see README)
-- v4 grade ladder archived in `_v4/` and `../reading-lab-v4-archive/`
+Rafael plays on **4400**. Build and test on **4401**. Release with rsync to the
+4400 mirror only after a clean sweep, then tell him to refresh.
 
-## Start the server (first thing, every new chat)
+## What the app is now
 
-Recreate `serve.py` in the new session's scratchpad (same script as before:
-SimpleHTTPRequestHandler on 127.0.0.1:4400, `Cache-Control: no-store`,
-serving `<scratchpad>/site`), rsync with `--exclude _v4 --exclude build`, run it
-as a **Bash background process** (preview_start servers die at turn end), and
-update the `reading-lab` entry in the apps folder's `.claude/launch.json`.
+An adult reading and pronunciation coach for Spanish-English bilinguals and
+for adults who cannot read English yet. Neural voices (Andrew EN, Dalia ES).
 
-Test silently at `/?mute=1`. The pane blocks the microphone; to test the
-scoring screen, stub `recordTake` in the console with a decoded voice clip.
-Typing tests need real `Return` key presses; a newline inside typed text is dropped.
+**Home:** Daily Read card, then level and stats, then Daily (7 min), then one
+level card (current level, browse back only), then the 60-second challenge.
 
-## What is built and verified in the pane
+- **Daily**: FSRS reviews + new items from opened levels, interleaved; coach
+  focus items for weak spots; speed practice first when owed; the reading test
+  at your level once a day; ends on the easiest review.
+- **Reading test**: listen with highlighting, read aloud (words right a minute
+  vs the level's oral target; matcher understands numbers, re-anchors after a
+  skipped line, needs 90%), 3 of 5 questions at random with shuffled answers.
+  Silent timed read only without a mic. Pass opens the next level; far above
+  target with 3/3 skips one.
+- **Speed practice**: a failed-on-speed passage comes back (listen, reread)
+  until you clear the target. Stumbled words become practice items.
+- **Daily Read**: one of 10 short texts per day, reread as often as you like,
+  speed line through the day. Together the 10 cover all top-100 words.
+- **Coach** (coach.js): classifies misspellings (double, silent, vowels,
+  endings, consonants), tracks stumbled words, scores 6 skills, picks the two
+  weakest, feeds them into the daily and the game.
+- **60-second challenge**: rounds mix type-it, pick-the-spelling, say-it;
+  personal record and a ghost of your best run.
+- **Weekly report**: this week vs last, what got better, focus in plain words,
+  stumbled words. Home once per new week; always in Progress.
+- **Content**: 13 levels (Nivel 1-13 with plain labels) x 2 passages; 24
+  industries x 20 terms with sentences and Spanish glosses; 200+ memory tricks;
+  18 Spanish-English shortcut rules; 12 false friends; 20 melody sentences;
+  96 Life facts (money, work, health, safety, home, rights, civics, food,
+  online safety, driving, science, manners); 13 beginner sound groups; every
+  passage word as a pronunciation item. 6,195 clips, 632 timed texts.
 
-- **Bug sweep, 3 rounds (2026-09-23).** Two code reviews (17 + 15 findings, all
-  fixed and re-verified), a scripted sweep of 368 screens (4 user types) with 0
-  errors, a bot that played 9 full sessions start to finish with no stuck
-  screens, and content checks: 0 missing clips (4,538), 0 misaligned read-alongs
-  (622). Commits d53d4ae and 16965d7.
-- **Reading test = read aloud** (words right a minute vs the grade's oral
-  target), silent timed read only without a mic. Matcher understands numbers
-  and re-finds its place after a skipped line. Done needs 90% of the passage;
-  a second Done accepts 60% or more, less falls back to the timed read.
-- **24 industries, 96 Life facts** (voiced questions and answers), one simple
-  font everywhere (Atkinson Hyperlegible), respelling uses "dj" for the j sound.
+## Files
 
-- **Home = Daily + Play.** 13 levels (Grade 1 to College) on a map. Each level
-  is a word round plus that grade's reading test (26 v4 passages, FK-gated in
-  `build/make_content.py`). Pass = speed target AND 2 of 3; well above target
-  with 3/3 skips a level. New daily words come only from opened levels.
-  Verified: 149 vs 150 target did not pass; 278 wpm 3/3 at G4 opened G6.
-- **Memory tricks** for all 160 job words (Spanish, keyword method), shown
-  before any word you missed. **Pictures** are wired but NOT generated yet:
-  201 prompts in `build/pic_jobs.json`, waiting on his go (about $2.61).
+| File | What it holds |
+|---|---|
+| `index.html` | shell, all CSS, script order: content, srs, core, app, coach |
+| `content.js` | generated, never edit by hand |
+| `srs.js` | FSRS-5 scheduler |
+| `core.js` | `h()`/`mount()`, storage, voice `say`/`sayAlong` (stall watchdog), mic, `liveRead` (read-aloud matcher), pitch + melody score, `norm` (numbers to words), diffs |
+| `app.js` | onboarding, placement, learnOrder/levels, buildSession/decorate, item phases, readFlow, intro cards, end screen, Words, Progress, Profile, level card |
+| `coach.js` | spelling patterns, skills, focus, speed practice, games, weekly report, Daily Read |
+| `build/content_src.py` | hand content: glosses, starter, shortcuts, traps, industries, tricks, pics, facts, respell overrides |
+| `build/strings_src.py` | every UI string, en + es |
+| `build/levels_en.js`, `extra_questions.py`, `daily_reads.py` | reading content |
+| `build/make_content.py` | generator with asserts; `build/tts.py` renders audio |
+| `tools/` | mock-sr, sweep, content-check |
 
-- Onboarding: language, reads English or not, up to two of 8 industries, when.
-  Readers: 12-word dictation placement seeds known core words. Beginners:
-  three spoken cards on how reading works.
-- Session: FSRS-5 reviews plus new items, interleaved by type, misses re-asked
-  once, ends on the easiest review. Grades come from behaviour, never buttons.
-- Reader word: write first (pretest), lesson with "suena como" respelling and
-  stress, say it, write it. Reviews alternate word and sentence dictation.
-- Beginner word: sound card from a Spanish anchor, lesson, say it, build from
-  shuffled tiles (wrong tiles never land). Letters of the sound highlighted.
-- 18 shortcut rules (-ción to -tion...), 12 false friends, 20 melody sentences.
-- Melody: YIN pitch tracker, per-speaker semitones, DTW alignment. Chart of
-  model vs you. Scores: self 100, slow self 89, rise vs fall 14.
-- Words tab with strength bars, Progress with coverage, owned words, writing
-  first vs now, melody first vs best, 30-day forecast.
-- Phone width checked at 375 px, no horizontal scroll.
+State lives in localStorage `rl5.*`: `profile` (P: lang, level, inds, grade,
+passed, order, practice, games, weekSeen), `cards`, `log`, `days`, `seen`.
+LOG kinds: graded items (`id,g,w,pat,mel`), `read`, `practice`, `dailyread`,
+`say`, `game`.
 
-## Not verified / not built
+## Verified vs not
 
-- Melody score and speech recognition on a real voice (needs his Chrome + mic).
-- Pictures and keyword mnemonics for hard words. Paste-your-own-text.
-- Arabic and Korean UI (v4 had them; dropped in v5).
+- Verified in the pane: every screen for 4 profiles, full sessions played by a
+  bot, coach picks the right focus on a fake learner, all paths with and
+  without a mic, content integrity.
+- **Not verifiable here:** real speech. The pane blocks the mic. Rafael's
+  Chrome works (he read Grade 6 aloud at 128 words right a minute). Treat his
+  screenshots as the only real-voice data.
 
-## Rules that still apply
+## Next, in priority order (with the reason)
 
-- Adult app: no hearts, XP, points, ranks, emoji, fanfares. He asked for "the
-  best game ever"; that was read as challenge, flow and visible gains.
-- No `innerHTML`; build with `h()`. The security hook also flags the regex
-  method named like the shell call; use `matchAll` instead.
-- Content changes go in `build/content_src.py`, then rerun both build scripts.
-- Keep replies short. No em dashes.
+1. **Bigger reading library.** Reading a lot of easy text is the best-supported
+   route to "read anything" (Jeon & Day 2016); the app has 26 passages + 10
+   daily reads. Add many short texts per level, FK-gated, adult topics, 5
+   questions each. Ask him which topics he wants first.
+2. **Calibrate on real use.** After a week of his LOG: check oral targets for
+   adults, the 90% rule, melody thresholds. Export his LOG from the Chrome
+   console and analyse it; do not guess.
+3. **Sound American track.** Flap T (water), reductions (gonna), linking (pick
+   it up), schwa, the three -ed endings, ship/sheep. Strong evidence for
+   pronunciation instruction (Lee, Jang & Plonsky 2015).
+4. **Phrase reading** for fluency: common chunks read as units.
+5. **Pictures** (needs his go, ~$0.08 sample then ~$2.61).
+6. **GitHub Pages** when he says it is ready (https also enables the mic on
+   phones). Consider offline support.
+7. Arabic and Korean UI; paste-your-own-text.
+
+## Working with Rafael
+
+Short replies, no em dashes, lead with the answer. He voice-types; read intent,
+not grammar. When he sends a screenshot of a bug, fix the class of bug, not
+just the instance. He says "go" to approve. He plays while you build, so
+never touch 4400 mid-build.

@@ -158,7 +158,7 @@ async function practiceFlow(host, e) {
     pr.best = Math.max(pr.best, wcpm);
     if (cleared) P.practice = null;
     save();
-    res.replaceChildren(
+    mount(res, 
       h('div', { class: 'scores' },
         h('div', { class: 'stat big' }, h('b', null, String(wcpm)), h('span', null, t(silent ? 'rd_wpm' : 'rd_wcpm'))),
         h('div', { class: 'stat big' }, h('b', null, String(target)), h('span', null, t('pr_target')))),
@@ -468,7 +468,7 @@ async function dailyReadFlow(host) {
         const set = new Set(r.top100);
         para.querySelectorAll('.w').forEach(sp => { if (set.has(norm(sp.textContent).split(' ')[0])) sp.classList.toggle('common'); });
       }, 'ghost');
-      res.replaceChildren(
+      mount(res, 
         h('div', { class: 'scores' },
           h('div', { class: 'stat big' }, h('b', null, String(speed)), h('span', null, t(mode === 'oral' ? 'rd_wcpm' : 'rd_wpm'))),
           acc != null ? h('div', { class: 'stat big' }, h('b', null, acc + '%'), h('span', null, t('rd_acc'))) : null),

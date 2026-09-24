@@ -644,7 +644,7 @@ const PHASES = {
       recBtn.removeAttribute('data-primary');
       recBtn.onclick = () => stopper.stop && stopper.stop();
       recBtn.disabled = false;
-      res.replaceChildren(h('p', { class: 'cue' }, t('your_turn')));
+      mount(res, h('p', { class: 'cue' }, t('your_turn')));
       try {
         const got = await recordTake({ maxMs: sentence ? 9000 : 4000, stopper,
           onLevel: v => { meter.firstChild.style.width = (v * 100).toFixed(0) + '%'; } });
@@ -672,15 +672,15 @@ const PHASES = {
         }
         const mine = new Audio(got.url);
         rows.push(h('div', { class: 'row' }, btn(t('mine'), () => { stopVoice(); mine.muted = MUTED(); mine.play(); }, 'ghost')));
-        res.replaceChildren(...rows);
+        mount(res, ...rows);
         recBtn.textContent = t('record'); recBtn.onclick = () => take();
         recBtn.classList.remove('primary');
         nextIsMain();
       } catch (err) {
         /* only a refused permission turns the mic off; a bad take just asks again */
         const refused = err && ['NotAllowedError', 'SecurityError', 'NotFoundError'].includes(err.name);
-        if (refused) { MIC.denied = true; res.replaceChildren(h('p', { class: 'note' }, t('mic_denied'))); recBtn.remove(); }
-        else { res.replaceChildren(h('p', { class: 'note' }, t('try_again'))); recBtn.textContent = t('record'); recBtn.onclick = () => take(); }
+        if (refused) { MIC.denied = true; mount(res, h('p', { class: 'note' }, t('mic_denied'))); recBtn.remove(); }
+        else { mount(res, h('p', { class: 'note' }, t('try_again'))); recBtn.textContent = t('record'); recBtn.onclick = () => take(); }
         nextIsMain();
       } finally { recording = false; }
     }
@@ -707,7 +707,7 @@ const PHASES = {
       }
       if (!missed) ctx.data.pat = spellPatterns(it.en, v);
       missed = true;
-      fb.replaceChildren(letterDiff(it.en, v), h('p', { class: 'note' }, t('copy')));
+      mount(fb, letterDiff(it.en, v), h('p', { class: 'note' }, t('copy')));
       inp.value = ''; inp.focus();
       say('en', it.en, true);
     };
@@ -795,7 +795,7 @@ const PHASES = {
       }
       if (!missed) ctx.data.pat = spellPatterns(it.en, v);
       missed = true;
-      fb.replaceChildren(letterDiff(it.en, v), h('p', { class: 'note' }, t('copy')));
+      mount(fb, letterDiff(it.en, v), h('p', { class: 'note' }, t('copy')));
       inp.value = ''; inp.focus(); say('en', it.en);
     };
     const inp = input(check);
@@ -1020,7 +1020,7 @@ async function readFlow(host, g) {
       const min = (performance.now() - t0) / 60000;
       oral = { wcpm: Math.round(r.right / min), acc: Math.round(100 * r.right / r.total), missed: [...para.querySelectorAll('.w.miss')].map(x => norm(x.textContent).split(' ')[0]).filter(Boolean) };
       note.textContent = t('rd_tap_missed');
-      res.replaceChildren(h('div', { class: 'scores' },
+      mount(res, h('div', { class: 'scores' },
         h('div', { class: 'stat big' }, h('b', null, String(oral.wcpm)), h('span', null, t('rd_wcpm'))),
         h('div', { class: 'stat big' }, h('b', null, oral.acc + '%'), h('span', null, t('rd_acc')))));
       /* reading it out loud was the test: go straight to the questions */
