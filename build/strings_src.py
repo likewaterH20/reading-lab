@@ -157,6 +157,7 @@ UI = {
  "g_best":      {"en": "record", "es": "récord"},
  "g_ghost":     {"en": "Your record run: {n} by now", "es": "Tu récord iba en {n} a esta altura"},
  "g_say_now":   {"en": "Say it now.", "es": "Dila ahora."},
+ "g_say_miss":  {"en": "Did not catch it. Next.", "es": "No se escuchó. Siguiente."},
  "g_record":    {"en": "New record", "es": "Nuevo récord"},
  "g_done":      {"en": "Time", "es": "Tiempo"},
  "g_missed":    {"en": "To practise:", "es": "Para practicar:"},

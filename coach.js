@@ -262,11 +262,11 @@ function nextRound() {
   const it = G.pool[G.i++ % G.pool.length];
   const my = ++G.token;
   const host = G.ui.host;
-  /* which kind of round: a shuffled cycle so the three alternate; a word you
-     stumble on out loud is said, when the mic can listen */
+  /* which kind of round: a shuffled cycle so the three alternate. Stumbled
+     words sit first in the pool, so a third of them land on a say-it round;
+     forcing every stumble into say-it opened the game as a wall of mic rounds. */
   if (!G.deck.length) G.deck = G.kinds.slice().sort(() => Math.random() - 0.5);
-  let kind = G.deck.shift();
-  if (G.id === 'mix' && canSay() && topStumbles(8).some(x => x.id === it.id)) kind = 'say';
+  const kind = G.deck.shift();
   G.kind = kind;
   const label = G.id === 'mix' ? h('div', { class: 'eyebrow' }, t('g_k_' + kind)) : null;
   if (kind === 'spell') {
@@ -291,6 +291,13 @@ function nextRound() {
     mount(host, label, wordBlock(it, true, false), status,
       h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'), btn(t('skip'), () => { stopListen(); missOne(it); nextRound(); }, 'ghost')));
     listenFor(it.en, ok => { if (G.token !== my) return; if (ok) { gotOne(it); nextRound(); } });
+    /* recognition can miss a short word for a long time; after 6 s the round
+       moves on ungraded so the clock is never eaten by the mic */
+    setTimeout(() => {
+      if (G.token !== my || G.over) return;
+      G.token++; stopListen(); status.textContent = t('g_say_miss');
+      setTimeout(() => GAME === G && !G.over && nextRound(), 700);
+    }, 6000);
   }
 }
 /* listen continuously and call back when the word is heard */
