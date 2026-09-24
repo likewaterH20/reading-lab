@@ -119,8 +119,10 @@ from level 1 first, so owning level 4 was unreachable. Fixed: the test returns
 every third day while practice is pending; practice counts toward the speed
 skill; half the new words come from the current level; the placement caps the
 level by reading speed (words shown over time taken, x1.5, vs silent targets).
-After: level 1 -> 4 in 14 days, 6 tests, 2 passes, speed skill 86 -> 93,
-coach focus moved from "endings" to "silent letters", 0 stalls, 0 errors.
+After: placed at level 3 (maze said 5, speed said 3), level 4 opened on day
+9, 6 tests, speed skill 71 -> 92, owned 201 -> 239, coach focus moved from
+"vowels" to "double letters", 0 stalls, 0 errors. Run: `window.SIM = {days:
+14, ability: 4, wpm: 110, seed: 7}` then load mock-sr.js + sim.js on 4401.
 The say-it phase and out-loud reading cannot be simulated (no mic in the pane).
 
 ## Verified vs not
