@@ -94,3 +94,37 @@ shows gains only. Kahneman et al. 1993, *Psychological Science*.
 - Melody scorer on known clips: a clip against itself 100, against its slow
   version 89, a rising question against a falling statement 14.
 - Not yet checked: scores on a live human voice.
+
+## How strong is the evidence? (audit, 2026-09-24)
+
+"Proven" here means shown in controlled studies or meta-analyses. Most studies
+use children or university students, not this app. Nothing is proven for this
+app until its own users' data shows it.
+
+**Strong** (several meta-analyses, effects replicate)
+- Retrieval practice beats rereading. Rowland 2014, *Psychological Bulletin*; Adesope et al. 2017, *Review of Educational Research*.
+- Spacing beats cramming. Cepeda et al. 2006, *Psychological Bulletin*.
+- Producing an answer beats reading it (generation). Bertsch et al. 2007, *Memory & Cognition*.
+- Spelling practice improves reading. Graham & Santangelo 2014, *Reading and Writing* (mostly children).
+- Pronunciation instruction works, with large effects. Lee, Jang & Plonsky 2015, *Applied Linguistics*.
+- Readers need about 98% of words known to read on their own. Hu & Nation 2000; Laufer & Ravenhorst-Kalovski 2010.
+- Planning when you will practise raises follow-through. Gollwitzer & Sheeran 2006 meta-analysis.
+
+**Moderate** (good studies, narrower populations)
+- Guessing before being taught (pretesting). Pan & Carpenter 2023 review.
+- Repeated reading builds fluency. Therrien 2004 meta-analysis (mostly children who struggle to read).
+- Reading while listening helps second-language readers. Chang & Millett 2014-2015.
+- Reading a lot of easy material builds reading ability. Jeon & Day 2016 meta-analysis. **The app has only 26 passages: this is its biggest gap.**
+- Cognate awareness helps Spanish-English bilinguals. Nagy et al. 1993 (children).
+- Keyword mnemonics help recall, mainly short term. Atkinson & Raugh 1975; Wang & Thomas 1995 found faster forgetting later.
+- Prosody training improves how easy you are to understand. Derwing, Munro & Wiebe 1998 (one key study).
+
+**Weak or unproven** (design choices, not evidence)
+- Mixing new items by type: interleaving helps with similar-looking categories, but a 2019 meta-analysis found it did not help, and could hurt, for learning words. Brunmair & Richter 2019, *Psychological Bulletin*. Kept only to stop sessions feeling repetitive.
+- Visual pitch feedback: small studies only. Hardison 2004.
+- The melody score, the 90% read-aloud rule, the level-skip threshold, and the owned-after-a-week rule are my own choices. None is validated.
+- Ending on an easy item (peak-end) is about how an experience is remembered, not how much is learned.
+- Speed targets above Grade 6 are extrapolated. The Grade 1-6 targets are children's norms, not adult ones.
+- FSRS predicts recall well on real review logs, but no trial shows it makes people learn faster than a simple schedule.
+
+**Not in the app, and not supported:** speed-reading techniques. Rayner et al. 2016, *Psychological Science in the Public Interest*: going faster than normal reading costs comprehension.
