@@ -261,7 +261,9 @@ function levelOf(id) {
   return i < 0 ? 1 : Math.floor(i * NLEV / o.length) + 1;
 }
 const levelItems = g => learnOrder().filter(id => levelOf(id) === g);
-const gradeName = g => g >= 13 ? t('college') : t('grade') + ' ' + g;
+/* levels, not school grades: an adult sees what they can read, not a child's year */
+const gradeName = g => t('grade') + ' ' + g;
+const levelLabel = g => t('lv_' + g);
 const starterDone = () => CONTENT.starter.every(gr => gr.words.every(started));
 const canRead = () => P.level === 'reader' || starterDone();
 const readToday = () => LOG.some(x => x.kind === 'read' && today(new Date(x.t)) === today());
@@ -305,8 +307,12 @@ function buildSession() {
     if (nq.length) q.push({ id: nq.shift(), mode: 'new' });
     for (let k = 0; k < 2 && dq.length; k++) q.push({ id: dq.shift(), mode: 'review' });
   }
+  /* the coach: extra practice where this learner is weakest */
+  const taken = new Set(q.map(e => e.id));
+  coachFocus(taken).forEach((e, k) => q.splice(Math.min(q.length, 1 + k * 3), 0, e));
+  if (P.practice && canRead() && !LOG.some(x => x.kind === 'practice' && today(new Date(x.t)) === today())) q.unshift({ practice: true });
   /* the reading test at your grade sits before the last, easiest review */
-  if (canRead() && !readToday()) q.push({ read: P.grade });
+  if (canRead() && !readToday() && !P.practice) q.push({ read: P.grade });
   if (easiest) q.push({ id: easiest, mode: 'review' });
   return decorate(q);
 }
@@ -314,7 +320,7 @@ function buildSession() {
 function decorate(q) {
   const out = [], shown = new Set();
   for (const e of q) {
-    if (e.read) { out.push(e); continue; }
+    if (e.read || e.practice) { out.push(e); continue; }
     const it = ITEMS[e.id];
     if (e.mode === 'new') {
       if (it.kind === 'cog' && !SEEN['rule:' + it.rule] && !shown.has('rule:' + it.rule)) { out.push({ intro: 'rule', key: it.rule }); shown.add('rule:' + it.rule); }
@@ -352,9 +358,16 @@ function todayScreen() {
   const inds = P.inds.map(id => CONTENT.industries.find(x => x.id === id)[P.lang] || id);
   const nothing = !pv.q.length;
   const lv = CONTENT.levels[P.grade - 1];
+  /* a new week: the report comes first, once, then it lives in Progress */
+  const ws = weekStart();
+  const newWeek = P.weekSeen !== ws && LOG.some(x => x.t < ws);
+  const weekCard = newWeek ? weeklyReport() : null;
+  if (weekCard) weekCard.appendChild(h('div', { class: 'actions' }, primary(t('wk_ok'), () => { P.weekSeen = ws; save(); render(); })));
   screen(
+    weekCard,
+    canRead() ? dailyReadCard() : null,
     h('div', { class: 'hero' },
-      h('div', { class: 'stat big' }, h('b', null, gradeName(P.grade)), h('span', null, t('p_grade'))),
+      h('div', { class: 'stat big' }, h('b', null, gradeName(P.grade)), h('span', null, levelLabel(P.grade))),
       h('div', { class: 'stat big' }, h('b', null, String(owned)), h('span', null, t('owned'))),
       h('div', { class: 'stat big' }, h('b', null, pct(cov) + '%'), h('span', null, t('cov_label')))),
     h('div', { class: 'card plan' },
@@ -367,7 +380,8 @@ function todayScreen() {
         : h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))),
     h('div', { class: 'card' },
       h('div', { class: 'row between' }, h('h2', null, t('play')), h('span', { class: 'note' }, t('play_sub'))),
-      h('div', { class: 'levels' }, CONTENT.levels.map(L => levelTile(L)))));
+      h('div', { class: 'levels' }, CONTENT.levels.map(L => levelTile(L)))),
+    gamesCard());
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;
@@ -376,8 +390,8 @@ function levelTile(L) {
   const own = ids.filter(id => CARDS[id] && CARDS[id].s >= OWNED_S).length;
   const state = !open ? 'locked' : g === P.grade ? 'current' : 'done';
   return h('button', { class: 'level ' + state, disabled: !open, onclick: () => startLevel(g), 'aria-label': gradeName(g) },
-    h('b', null, g >= 13 ? 'U' : String(g)),
-    h('span', { class: 'lname' }, gradeName(g)),
+    h('b', null, String(g)),
+    h('span', { class: 'lname' }, levelLabel(g)),
     open ? h('span', { class: 'lbar' }, h('i', { style: `width:${ids.length ? Math.round(100 * own / ids.length) : 0}%` })) : h('span', { class: 'lock' }, '·'),
     passed ? h('span', { class: 'tick' }, '✓') : null);
 }
@@ -421,6 +435,8 @@ function runScreen() {
     host));
   if (e.intro) return introCard(host, e);
   if (e.read) return readFlow(host, e.read);
+  if (e.practice) return practiceFlow(host, e);
+  if (e.dread) return dailyReadFlow(host);
   itemFlow(host, e);
 }
 const alive = my => RUN && RUN.screen === my;
@@ -615,6 +631,7 @@ const PHASES = {
         if (!alive(my)) return;
         meter.firstChild.style.width = '0%';
         const match = heardMatch(target, got.heard);
+        if (got.heard.length) LOG.push({ t: Date.now(), kind: 'say', share: match.share, missed: norm(target).split(' ').filter((w, i) => !match.hits[i]) });
         const rows = [];
         if (got.heard.length) rows.push(h('div', { class: 'heard' }, norm(target).split(' ').map((w, i) =>
           h('span', { class: match.hits[i] ? 'ok' : 'miss' }, w + ' '))));
@@ -664,10 +681,11 @@ const PHASES = {
       if (isRight(v, it.en)) {
         const g = missed ? 1 : slow ? 2 : 3;
         mount(host, h('div', { class: 'eyebrow ok' }, t('right')), wordBlock(it));
-        ctx.grade(g, { ok: !missed, w: 1 });
+        ctx.grade(g, { ok: !missed, w: 1, pat: ctx.data.pat });
         say('en', it.en);
         return finishItem(host, my, 1200);
       }
+      if (!missed) ctx.data.pat = spellPatterns(it.en, v);
       missed = true;
       fb.replaceChildren(letterDiff(it.en, v), h('p', { class: 'note' }, t('copy')));
       inp.value = ''; inp.focus();
@@ -748,13 +766,14 @@ const PHASES = {
     const check = v => {
       if (!v.trim()) return;
       if (isRight(v, it.en)) {
-        ctx.grade(missed ? 1 : 3, { ok: !missed, w: 1 });
+        ctx.grade(missed ? 1 : 3, { ok: !missed, w: 1, pat: ctx.data.pat });
         mount(host, h('div', { class: 'eyebrow ok' }, t('right')),
           h('div', { class: 'pair' }, h('span', { class: 'es' }, it.es), h('span', { class: 'arrow' }, '→')),
           wordBlock(it, true, false), rule.same_stress ? null : h('p', { class: 'note' }, t('sc_stress')));
         say('en', it.en).then(() => alive(my) && finishItem(host, my, 900));
         return;
       }
+      if (!missed) ctx.data.pat = spellPatterns(it.en, v);
       missed = true;
       fb.replaceChildren(letterDiff(it.en, v), h('p', { class: 'note' }, t('copy')));
       inp.value = ''; inp.focus(); say('en', it.en);
@@ -918,7 +937,8 @@ async function readFlow(host, g) {
     const prev = LOG.filter(x => x.kind === 'read' && x.pid === ps.id && (x.mode || 'silent') === mode).pop();
     if (!tooFast) {
       if (pass) P.passed[ps.id] = Math.max(P.passed[ps.id] || 0, speed);
-      LOG.push({ t: Date.now(), kind: 'read', pid: ps.id, grade: g, mode, speed, wpm: speed, c, pass, asked, ...(oral || {}) });
+      LOG.push({ t: Date.now(), kind: 'read', pid: ps.id, grade: g, mode, speed, wpm: speed, target: tgt, c, pass, asked, ...(oral || {}) });
+      notePracticeNeed(ps, g, speed, tgt, pass, oral && oral.missed);
       RUN.results.push({ id: ps.id, g: pass ? 3 : 2, read: true, wpm: speed });
       if (opened) RUN.opened = opened;
       snapshot(); save();
@@ -978,7 +998,7 @@ async function readFlow(host, g) {
       const r = reader.stop(); reader = null; RUN.reader = null;
       if (r.failed || !r.right) { MIC.denied = MIC.denied || r.failed; return solo(); }
       const min = (performance.now() - t0) / 60000;
-      oral = { wcpm: Math.round(r.right / min), acc: Math.round(100 * r.right / r.total) };
+      oral = { wcpm: Math.round(r.right / min), acc: Math.round(100 * r.right / r.total), missed: [...para.querySelectorAll('.w.miss')].map(x => norm(x.textContent).split(' ')[0]).filter(Boolean) };
       note.textContent = t('rd_tap_missed');
       res.replaceChildren(h('div', { class: 'scores' },
         h('div', { class: 'stat big' }, h('b', null, String(oral.wcpm)), h('span', null, t('rd_wcpm'))),
@@ -1172,6 +1192,7 @@ function progressScreen() {
         mels.length ? h('div', { class: 'fromto' },
           h('div', { class: 'stat' }, h('b', null, mels[0] + '%'), h('span', null, t('p_first'))),
           h('div', { class: 'stat' }, h('b', null, Math.max(...mels.slice(-10)) + '%'), h('span', null, t('p_now')))) : h('p', { class: 'note' }, t('p_empty')))),
+    weeklyReport(),
     readingCard(),
     h('p', { class: 'note' }, keys.length + ' ' + t('p_sessions')));
 }

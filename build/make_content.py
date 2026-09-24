@@ -176,6 +176,38 @@ for lv in RD.load_levels(os.path.join(HERE, "levels_en.js"), "LEVELS_EN"):
     levels.append({"grade": lv["grade"], "name": lv["name"], "oral": lv["oral"], "silent": lv["silent"], "passages": ps})
 check(len(levels) == 13, "want 13 grades")
 
+# ---------------- daily reads: reread all day, cover the top 100 words ----------------
+import daily_reads as DR
+top100 = core_list[:100]
+daily, covered = [], set()
+for r in DR.DAILY_READS:
+    fk = RD.fk_grade(r["text"])
+    check(fk <= 5.5, "daily read %s reads at FK %.1f, keep it at 5 or under" % (r["id"], fk))
+    toks = set(w.lower().strip("'") for w in re.findall(r"[A-Za-z][A-Za-z']*", r["text"]))
+    has = [w for w in top100 if w in toks]
+    covered |= set(has)
+    daily.append({"id": r["id"], "title": r["title"], "text": r["text"], "words": len(r["text"].split()),
+                  "fk": round(fk, 1), "top100": has})
+missing100 = [w for w in top100 if w not in covered]
+check(not missing100, "daily reads miss these top-100 words: %s" % missing100)
+
+# ---------------- every word in the passages, for pronunciation practice ----------------
+# Words someone stumbles on when reading aloud become practice items, so each
+# needs its own clip and respelling. They are not part of the level order.
+passage_words = []
+for text in [ps["text"] for lv in levels for ps in lv["passages"]] + [d["text"] for d in daily]:
+    if True:
+        for tok in re.findall(r"[A-Za-z][A-Za-z']*", text):
+            w = tok.lower().strip("'")
+            if w.endswith("'s"): w = w[:-2]
+            if len(w) < 2 and w not in ("a", "i"): continue
+            if w in by_en or ("p:" + w) in passage_words: continue
+            rs = respell(w)
+            if not rs: continue
+            it = {"id": "p:" + w, "kind": "word", "en": "I" if w == "i" else w, "es": "", "src": ["passage"],
+                  "freq": round(freq(w), 8), "say": rs}
+            items.append(it); passage_words.append(it["id"])
+
 # ---------------- memory tricks and pictures ----------------
 industry_terms = {t[0].lower() for ind in C.INDUSTRIES for t in ind["terms"]}
 first8 = {t[0].lower() for ind in C.INDUSTRIES[:8] for t in ind["terms"]}
@@ -220,7 +252,7 @@ for it in items:
     k = it["kind"]
     if k in ("word", "cog"):
         want("en", it["en"], False); want("en", it["en"], True)
-        want("es", it["es"])
+        if it["es"]: want("es", it["es"])
         if it.get("sentence"): want("en", it["sentence"], False, True); want("en", it["sentence"], True)
     if k == "trap":
         want("en", it["en"]); want("en", it["en"], True); want("es", it["es"]); want("en", it["real"])
@@ -235,6 +267,8 @@ for g in C.STARTER: want("es", g["es"]); want("en", g["en"])
 for lv in levels:
     for ps in lv["passages"]:
         want("en", ps["text"], False, True)
+for d in daily:
+    want("en", d["text"], False, True)
 for sid, row in U.UI.items():
     if sid in U.SPOKEN:
         for lang in ("en", "es"): want(lang, row[lang])
@@ -243,7 +277,7 @@ for sid, row in U.UI.items():
 if fails:
     print("FAILED %d checks:" % len(fails)); [print("  -", f) for f in fails]; sys.exit(1)
 
-content = {"items": items, "levels": levels, "facts": [f["id"] for f in facts],
+content = {"items": items, "levels": levels, "daily": daily, "facts": [f["id"] for f in facts],
            "topics": [{"id": t[0], "en": t[1], "es": t[2]} for t in C.LIFE_TOPICS], "starter": starter, "industries": industries, "core": core_ids,
            "shortcuts": shortcuts, "traps": traps, "sentences": sentences, "ui": U.UI,
            "spoken": sorted(U.SPOKEN),

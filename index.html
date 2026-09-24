@@ -173,6 +173,20 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); border-col
 .choice.wrong { border-color: var(--miss); background: color-mix(in srgb, var(--miss) 14%, var(--panel)); }
 .opened { color: var(--accent); font-weight: 600; }
 .note.warn { color: var(--miss); }
+.card.dread { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.passage .w.common { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 5px; }
+.gamegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.gametile { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.gametile b { font-size: 18px; }
+.gametile span { color: var(--muted); font-size: 14px; }
+.gametile .rec { color: var(--accent); font-weight: 700; }
+.ghost { color: var(--muted); font-size: 14px; }
+.ghost.ahead { color: var(--accent); font-weight: 700; }
+.card.week { border-color: var(--accent); }
+.wtable { display: grid; grid-template-columns: 1fr auto auto; gap: 6px 18px; align-items: baseline; }
+.wtable .hd { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+.wtable b.up { color: var(--accent); }
+.note.focus { color: var(--text); border-left: 3px solid var(--accent); padding-left: 10px; }
 .sound-gate { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; padding: 14px 22px; border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
 .fact .sentence { font-size: clamp(22px, 5.4vw, 27px); }
 h2.q { font: 700 clamp(21px, 5vw, 25px)/1.35 var(--read); }
@@ -245,5 +259,6 @@ h2.q { font: 700 clamp(21px, 5vw, 25px)/1.35 var(--read); }
 <script src="srs.js"></script>
 <script src="core.js"></script>
 <script src="app.js"></script>
+<script src="coach.js"></script>
 </body>
 </html>
