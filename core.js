@@ -110,8 +110,9 @@ function say(lang, text, slow = false, onTime) {
          reports time, and gating on paused froze the highlight before */
       const tick = () => { if (my !== VOICE.token) return; if (onTime) onTime(a.currentTime); raf = requestAnimationFrame(tick); };
       tick();
-    }).catch(() => {
-      /* refused for no user gesture is not a bad clip; just move on */
+    }).catch(err => {
+      /* refused for no user gesture is not a bad clip: offer one tap to turn sound on */
+      if (err && err.name === 'NotAllowedError') soundBlocked(lang, text, slow);
       setTimeout(done, 200);
     });
   });
@@ -129,6 +130,15 @@ function fallbackSay(lang, text, slow) {
       speechSynthesis.speak(u);
     } catch { res(); }
   });
+}
+/* Chrome blocks sound until the page has been tapped. When that happens, show
+   one button; tapping it plays the clip that was blocked and sound stays on. */
+function soundBlocked(lang, text, slow) {
+  if (document.querySelector('.sound-gate')) return;
+  const es = typeof P !== 'undefined' && P && P.lang === 'es';
+  const b = h('button', { class: 'sound-gate', onclick: () => { b.remove(); say(lang, text, slow); } },
+    es ? 'Toca para activar el sonido' : 'Tap to turn on sound');
+  document.body.appendChild(b);
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /** Play a sentence and light each word as it is spoken. */
