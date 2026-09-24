@@ -378,34 +378,26 @@ function sessionPreview() {
    play any level you have opened. */
 function todayScreen() {
   const pv = sessionPreview();
-  const cov = coverage(), owned = ownedIds().length;
   const doneToday = (DAYS[today()] || {}).n > 0;
-  const inds = P.inds.map(id => CONTENT.industries.find(x => x.id === id)[P.lang] || id);
   const nothing = !pv.q.length;
-  const lv = CONTENT.levels[P.grade - 1];
   /* a new week: the report comes first, once, then it lives in Progress */
   const ws = weekStart();
   const newWeek = P.weekSeen !== ws && LOG.some(x => x.t < ws);
   const weekCard = newWeek ? weeklyReport() : null;
   if (weekCard) weekCard.appendChild(h('div', { class: 'actions' }, primary(t('wk_ok'), () => { P.weekSeen = ws; save(); render(); })));
+  /* minimal: the session first, one line about it, one button; then the daily
+     read; then the level. Numbers live in Progress. */
+  const plan = [t('due_n', { n: pv.due }), t('new_n', { n: pv.fresh }), canRead() ? t('rd_title') + ' · ' + gradeName(P.grade) : null].filter(Boolean).join(' · ');
   screen(
     weekCard,
-    canRead() ? dailyReadCard() : null,
-    h('div', { class: 'hero' },
-      h('div', { class: 'stat big' }, h('b', null, gradeName(P.grade)), h('span', null, levelLabel(P.grade))),
-      h('div', { class: 'stat big' }, h('b', null, String(owned)), h('span', null, t('owned'))),
-      h('div', { class: 'stat big' }, h('b', null, pct(cov) + '%'), h('span', null, t('cov_label')))),
     h('div', { class: 'card plan' },
       h('div', { class: 'row between' }, h('h2', null, t('daily')), h('span', { class: 'note' }, t('daily_len'))),
-      h('div', { class: 'row' }, chip(t('due_n', { n: pv.due })), chip(t('new_n', { n: pv.fresh })),
-        canRead() ? chip(t('rd_title') + ' · ' + gradeName(P.grade)) : null, inds.map(chip)),
-      P.when ? h('p', { class: 'when' }, t('your_time', { t: t(P.when).toLowerCase() })) : null,
       nothing
         ? h('p', { class: 'lead' }, t('done_today', { w: whenNext() }))
-        : h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))),
-    h('div', { class: 'card' },
-      h('div', { class: 'row between' }, h('h2', null, t('play')), h('span', { class: 'note' }, t('play_sub'))),
-      levelCard()));
+        : [h('p', { class: 'note' }, plan),
+           h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))]),
+    canRead() ? dailyReadCard() : null,
+    levelCard());
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;
