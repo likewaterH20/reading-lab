@@ -51,6 +51,14 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
   name with the shell call, even in comments. Use `matchAll`.
 
 ## Testing (tools/)
+- `tools/sim.js`: **Mateo, the simulated learner** (his ask: "a 38 year old
+  man that's literate ... a Sim ... so I can know if it works or not"). Plays
+  the real screens through onboarding + placement and N days (clock shifted a
+  day per loop, voice silenced, auto-advance 25 ms). Load mock-sr.js first,
+  set `window.SIM = { days, ability, wpm, seed }`, poll
+  `({done: __simDone, report: __simReport})`. Report = per-day level, owned,
+  first-try %, speed/spelling skills, coach focus, stalls, errors. Run it after
+  any change to sessions, levels, placement or the coach, and compare days.
 - `tools/mock-sr.js`: stand-in speech recognition (the pane blocks the mic)
   plus error capture. Paste first.
 - `tools/sweep.js`: opens every screen type for 4 learner profiles; poll

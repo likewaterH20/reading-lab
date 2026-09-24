@@ -214,12 +214,22 @@ function mazeItem(g, usedSentences) {
 }
 function placement(tl) {
   const N = 8;
-  if (!OB.place) OB.place = { pos: 3, i: 0, right: [], wrong: [], used: new Set(), t0: Date.now() };
+  if (!OB.place) OB.place = { pos: 3, i: 0, right: [], wrong: [], used: new Set(), t0: Date.now(), words: 0 };
   const st = OB.place;
   if (st.i >= N) {
     /* placed at the highest level read right with no level below it read wrong */
     const okLevels = st.right.filter(g => !st.wrong.some(w => w < g));
-    const placed = okLevels.length ? Math.max(...okLevels) : 1;
+    let placed = okLevels.length ? Math.max(...okLevels) : 1;
+    /* and no higher than reading speed allows: the words shown over the time
+       taken, against each level's silent target (guessing fast is not reading) */
+    const secs = (Date.now() - st.t0) / 1000;
+    const wpmEst = secs > 5 ? st.words / secs * 60 : 0;
+    if (wpmEst >= 40 && wpmEst < 400) {
+      /* choosing a word slows reading by about a third, so the estimate is scaled up before the comparison */
+      const bySpeed = CONTENT.levels.filter(L => L.silent <= wpmEst * 1.5).length;
+      placed = Math.max(1, Math.min(placed, bySpeed));
+    }
+    st.wpmEst = Math.round(wpmEst);
     const upto = [0, 100, 200, 300][Math.min(3, placed - 1)];
     let n = 0;
     CONTENT.core.forEach(id => { if (ITEMS[id].rank <= upto) { CARDS[id] = { ...FSRS.seed(), seeded: true }; n++; } });
@@ -233,6 +243,7 @@ function placement(tl) {
   }
   let item = mazeItem(st.pos, st.used);
   if (!item) { st.i = N; return placement(tl); }
+  st.words += (item.before + ' ' + item.after).split(/\s+/).filter(Boolean).length + 1;
   const next = ok => {
     (ok ? st.right : st.wrong).push(item.g);
     st.pos = Math.max(1, Math.min(NLEV, st.pos + (ok ? (st.pos >= 10 ? 1 : 2) : -1)));
@@ -301,13 +312,13 @@ function buildSession() {
     .filter(id => P.level === 'reader' || ['word', 'fact'].includes(ITEMS[id].kind))
     .sort((a, b) => FSRS.retrievability(CARDS[a], now) - FSRS.retrievability(CARDS[b], now)).slice(0, 15);
 
-  /* new words come only from levels you have unlocked, in the fixed order */
-  const fresh = [];
+  /* new words come only from levels you have unlocked: half from your current
+     level (so owning it, and opening the next, is reachable), half from the
+     easier levels you skipped past, in the fixed order */
   const nWant = P.level === 'beginner' ? 4 : 8;
-  for (const id of learnOrder()) {
-    if (fresh.length >= nWant || levelOf(id) > P.grade) break;
-    if (!started(id)) fresh.push(id);
-  }
+  const unstarted = learnOrder().filter(id => !started(id) && levelOf(id) <= P.grade);
+  const mine = unstarted.filter(id => levelOf(id) === P.grade).slice(0, Math.ceil(nWant / 2));
+  const fresh = [...mine, ...unstarted.filter(id => !mine.includes(id))].slice(0, nWant);
   /* reviews come first in priority: a heavy review day halves the new words */
   const nNew = due.length > 12 ? Math.ceil(fresh.length / 2) : fresh.length;
   /* mix the kinds (interleaved practice): job word, shortcut, job word, false friend... */
@@ -336,8 +347,12 @@ function buildSession() {
   const taken = new Set(q.map(e => e.id));
   coachFocus(taken).forEach((e, k) => q.splice(Math.min(q.length, 1 + k * 3), 0, e));
   if (P.practice && canRead() && !LOG.some(x => x.kind === 'practice' && today(new Date(x.t)) === today())) q.unshift({ practice: true });
-  /* the reading test at your grade sits before the last, easiest review */
-  if (canRead() && !readToday() && !P.practice) q.push({ read: P.grade });
+  /* the reading test at your grade sits before the last, easiest review.
+     Speed practice replaces it, but never for more than two days in a row:
+     a learner below the speed target still gets a real test every third day. */
+  const lastRead = LOG.filter(x => x.kind === 'read').pop();
+  const testDue = !P.practice || !lastRead || Date.now() - lastRead.t >= 3 * 864e5;
+  if (canRead() && !readToday() && testDue) q.push({ read: P.grade });
   if (easiest) q.push({ id: easiest, mode: 'review' });
   return decorate(q);
 }

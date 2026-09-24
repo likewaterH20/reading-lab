@@ -46,7 +46,9 @@ function skills(from = Date.now() - 14 * DAY, to = Date.now()) {
   const avg = a => a.length ? a.reduce((p, q) => p + q, 0) / a.length : null;
   const writes = L.filter(x => x.w);
   const meaning = L.filter(x => x.id && ITEMS[x.id] && ['trap', 'fact'].includes(ITEMS[x.id].kind));
-  const reads = L.filter(x => x.kind === 'read');
+  /* speed practice is a timed reading too: it moves the speed skill, so the
+     coach can see a learner getting faster before the next test */
+  const reads = L.filter(x => (x.kind === 'read' || x.kind === 'practice') && x.speed != null);
   /* every out-loud reading is evidence for pronunciation: tests, practice, daily reads */
   const aloud = L.filter(x => ['read', 'practice', 'dailyread'].includes(x.kind) && x.acc != null);
   const says = L.filter(x => x.kind === 'say');
@@ -62,7 +64,7 @@ function skills(from = Date.now() - 14 * DAY, to = Date.now()) {
       ? avg([...says.map(x => x.share), ...aloud.map(x => x.acc / 100)]) : null, n: says.length + aloud.length },
     melody: { v: avg(L.filter(x => x.mel != null).map(x => x.mel / 100)), n: L.filter(x => x.mel != null).length },
     speed: { v: reads.length ? avg(reads.map(x => Math.min(1.2, x.speed / (x.target || 100)))) / 1.2 : null, n: reads.length },
-    comprehension: { v: reads.length ? avg(reads.map(x => x.c / 3)) : null, n: reads.length },
+    comprehension: (() => { const tests = reads.filter(x => x.c != null); return { v: tests.length ? avg(tests.map(x => x.c / 3)) : null, n: tests.length }; })(),
   };
   if (s.melody.n < 3) s.melody.v = null;
   return { s, patterns: pat, stumbles };

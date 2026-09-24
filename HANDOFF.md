@@ -102,13 +102,26 @@ only until he says "go"; the 4400 mirror carries the OLD stylesheet
 | `build/strings_src.py` | every UI string, en + es |
 | `build/levels_en.js`, `extra_questions.py`, `daily_reads.py` | reading content |
 | `build/make_content.py` | generator with asserts; `build/tts.py` renders audio |
-| `tools/` | mock-sr, sweep, content-check |
+| `tools/` | mock-sr, sweep, content-check, **sim (Mateo, the simulated learner: run after any change to sessions, levels, placement, coach)** |
 
 State lives in localStorage `rl5.*`: `profile` (P: lang, level, inds, grade,
 passed, order, practice, weekSeen; old profiles may still carry `games`),
 `cards`, `log`, `days`, `seen`.
 LOG kinds: graded items (`id,g,w,pat,mel`), `read`, `practice`, `dailyread`,
 `say`, `open` (level opened by play). Old logs may carry `game`.
+
+## What the simulator found (2026-09-24, 14 days of Mateo, 38, reads 110 wpm)
+
+Before: placed at level 4, he stayed at level 4 for 14 days with ONE reading
+test and zero passes, because speed practice (target 150 wpm) replaced the
+test every day and practice did not feed the speed skill; new words came
+from level 1 first, so owning level 4 was unreachable. Fixed: the test returns
+every third day while practice is pending; practice counts toward the speed
+skill; half the new words come from the current level; the placement caps the
+level by reading speed (words shown over time taken, x1.5, vs silent targets).
+After: level 1 -> 4 in 14 days, 6 tests, 2 passes, speed skill 86 -> 93,
+coach focus moved from "endings" to "silent letters", 0 stalls, 0 errors.
+The say-it phase and out-loud reading cannot be simulated (no mic in the pane).
 
 ## Verified vs not
 
