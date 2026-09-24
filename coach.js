@@ -243,6 +243,7 @@ function weekNumbers(from, to) {
     spelling: sk.spelling.v != null ? Math.round(100 * sk.spelling.v) : null,
     melody: sk.melody.v != null ? Math.round(100 * sk.melody.v) : null,
     dreads: L.filter(x => x.kind === 'dailyread').length,
+    uses: L.filter(x => x.kind === 'use').length,
     owned: ownedEnd,
   };
 }
@@ -253,6 +254,7 @@ function weeklyReport() {
     ['wk_days', now.days, before.days, ''],
     ['wk_items', now.items, before.items, ''],
     ['wk_dreads', now.dreads, before.dreads, ''],
+    ['wk_use', now.uses, before.uses, ''],
     ['wk_first', now.firstTry, before.firstTry, '%'],
     ['wk_spelling', now.spelling, before.spelling, '%'],
     ['wk_speed', now.speed, before.speed, ''],

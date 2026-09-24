@@ -88,7 +88,7 @@ for g in C.STARTER:
                     "words": ["w:" + w[0] for w in g["words"]]})
 
 industries = []
-check(len(C.INDUSTRIES) == 25, "want 25 industries, have %d" % len(C.INDUSTRIES))
+check(len(C.INDUSTRIES) == 26, "want 26 industries, have %d" % len(C.INDUSTRIES))
 for ind in C.INDUSTRIES:
     check(len(ind["terms"]) == 20, "%s has %d terms, want 20" % (ind["id"], len(ind["terms"])))
     ids = []
@@ -157,17 +157,19 @@ for tp in topic_ids:
 import readability as RD
 import extra_questions as XQ
 levels = []
+# the library: levels_en.js holds the first two passages per level; levels_more.js adds the rest
+more = {lv["grade"]: lv["passages"] for lv in RD.load_levels(os.path.join(HERE, "levels_more.js"), "LEVELS_MORE")} if os.path.exists(os.path.join(HERE, "levels_more.js")) else {}
 for lv in RD.load_levels(os.path.join(HERE, "levels_en.js"), "LEVELS_EN"):
     ps = []
-    for k, p in enumerate(lv["passages"]):
+    for k, p in enumerate(lv["passages"] + more.get(lv["grade"], [])):
         fk = RD.fk_grade(p["text"])
         check(abs(fk - lv["grade"]) <= RD.TOL or lv["grade"] == 13 and fk >= 12.1,
               "G%d '%s' reads at FK %.1f" % (lv["grade"], p["title"], fk))
-        check(len(p["questions"]) == 3 and all(0 <= q["correct"] < len(q["a"]) for q in p["questions"]),
-              "G%d '%s' needs 3 valid questions" % (lv["grade"], p["title"]))
+        check(3 <= len(p["questions"]) <= 5 and all(0 <= q["correct"] < len(q["a"]) for q in p["questions"]),
+              "G%d '%s' needs 3 to 5 valid questions" % (lv["grade"], p["title"]))
         pid = "g%d-%d" % (lv["grade"], k)
         # a pool of five questions per passage; the app asks three at random
-        qs = p["questions"] + [{"q": q, "a": opts, "correct": 0} for q, opts in XQ.EXTRA.get(pid, [])]
+        qs = p["questions"] + ([{"q": q, "a": opts, "correct": 0} for q, opts in XQ.EXTRA.get(pid, [])] if len(p["questions"]) < 5 else [])
         check(len(qs) == 5, "%s needs 5 questions, has %d" % (pid, len(qs)))
         check(all(len(set(q["a"])) == len(q["a"]) for q in qs), pid + " has duplicate answer options")
         check(len({q["q"] for q in qs}) == len(qs), pid + " repeats a question")

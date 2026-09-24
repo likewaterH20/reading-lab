@@ -161,9 +161,10 @@ function onboarding() {
     return screen(h('h1', null, tl('ind_q')),
       h('div', { class: 'choices grid' },
         CONTENT.industries.map(ind => choose(ind[OB.lang] || ind.en, null, () => toggle(ind.id), OB.inds.includes(ind.id))),
-        choose(tl('ind_none'), null, () => { OB.inds = []; go('when'); }, false)),
-      h('div', { class: 'actions' }, primary(tl('start') === 'Start' ? 'Next' : 'Siguiente', () => go('when'))));
+        choose(tl('ind_none'), null, () => { OB.inds = []; go(OB.level === 'beginner' ? 'primer' : 'place'); }, false)),
+      h('div', { class: 'actions' }, primary(tl('start') === 'Start' ? 'Next' : 'Siguiente', () => go(OB.level === 'beginner' ? 'primer' : 'place'))));
   }
+  /* "When will you practise?" was removed at his word: it is a daily tool, no question needed */
   if (OB.step === 'when') {
     if (OB.level === 'beginner') say(OB.lang, tl('when_q'));
     const pick = w => { OB.when = w; go(OB.level === 'beginner' ? 'primer' : 'place'); };
@@ -343,6 +344,8 @@ function buildSession() {
     if (nq.length) q.push({ id: nq.shift(), mode: 'new' });
     for (let k = 0; k < 2 && dq.length; k++) q.push({ id: dq.shift(), mode: 'review' });
   }
+  /* output: two of today's new words end with a sentence of your own (readers only) */
+  if (P.level === 'reader') q.filter(e => e.mode === 'new' && ITEMS[e.id].kind === 'word' && ITEMS[e.id].sentence).slice(0, 2).forEach(e => { e.use = true; });
   /* the coach: extra practice where this learner is weakest */
   const taken = new Set(q.map(e => e.id));
   coachFocus(taken).forEach((e, k) => q.splice(Math.min(q.length, 1 + k * 3), 0, e));
@@ -505,9 +508,11 @@ async function speakPhase(id) {
 /* a hard word is one you have missed: before or since this session */
 const isHard = (it, card) => (card.lapses || 0) > 0 || (RUN && RUN.retried.has(it.id));
 const hasTrick = it => !!((P.lang === 'es' && it.trick) || it.pic);
-function phasesFor(it, mode, card) {
+function phasesFor(it, mode, card, e) {
   const list = basePhases(it, mode, card);
-  return mode === 'review' && isHard(it, card) && hasTrick(it) ? ['trick', ...list] : list;
+  const out = mode === 'review' && isHard(it, card) && hasTrick(it) ? ['trick', ...list] : list;
+  /* the output step: two words a day end with a sentence of your own */
+  return e && e.use ? [...out, 'use'] : out;
 }
 function basePhases(it, mode, card) {
   const beg = P.level === 'beginner';
@@ -521,7 +526,7 @@ function basePhases(it, mode, card) {
 }
 function itemFlow(host, e) {
   const it = ITEMS[e.id];
-  const ctx = { it, e, phases: phasesFor(it, e.mode, CARDS[e.id] || { reps: 0 }), pi: 0, data: {} };
+  const ctx = { it, e, phases: phasesFor(it, e.mode, CARDS[e.id] || { reps: 0 }, e), pi: 0, data: {} };
   ctx.next = () => { ctx.pi++; runPhase(); };
   ctx.grade = (g, extra = {}) => gradeItem(ctx, g, extra);
   const runPhase = () => {
@@ -728,6 +733,35 @@ const PHASES = {
   },
 
   /* dictation from sound alone: the writing drill */
+  /* USE IT: produce a sentence of your own with the word (generative use: the
+     effort of producing is what makes a word yours). Checked for a full
+     sentence that contains the word; then the model sentence, for comparison. */
+  use(host, ctx, my) {
+    const { it } = ctx;
+    const w = it.en.toLowerCase();
+    const fb = h('p', { class: 'note warn' });
+    const area = h('textarea', { class: 'answer long', rows: 2, autocomplete: 'off', autocapitalize: 'sentences', spellcheck: 'false', lang: 'en', translate: 'no' });
+    let tries = 0;
+    const check = () => {
+      const v = area.value.trim(); if (!v) return;
+      const words = v.split(/\s+/).filter(Boolean);
+      const has = new RegExp('(^|[^a-z])' + w.replace(/[^a-z ]/g, '') + '[a-z]*([^a-z]|$)').test(v.toLowerCase());
+      if (!has) { fb.textContent = t('use_missing', { w: it.en }); tries++; return; }
+      if (words.length < 5) { fb.textContent = t('use_short'); tries++; return; }
+      LOG.push({ t: Date.now(), kind: 'use', id: it.id, len: words.length, tries, text: v.slice(0, 120) });
+      const sentEl = it.sentence ? sentenceBlock(it.sentence, it.en) : null;
+      mount(host, h('div', { class: 'eyebrow ok' }, t('use_ok')),
+        h('p', { class: 'sentence', translate: 'no', lang: 'en' }, v), sentEl);
+      (sentEl ? sayAlong(it.sentence, sentEl) : Promise.resolve()).then(() => alive(my) && finishItem(host, my, 1600));
+    };
+    area.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); check(); } });
+    mount(host, h('div', { class: 'eyebrow' }, t('ph_use')),
+      h('h2', { class: 'q' }, t('use_q', { w: it.en })),
+      h('p', { class: 'note' }, t('use_hint')),
+      area, fb, h('div', { class: 'actions' }, primary(t('check'), check)));
+    area.focus();
+  },
+
   write(host, ctx, my) {
     const { it } = ctx; let slow = false, missed = false;
     const play = () => say('en', it.en), playSlow = () => { slow = true; say('en', it.en, true); };
