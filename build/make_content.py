@@ -23,7 +23,7 @@ def check(cond, msg):
 # ---------------- say-it-like respelling from the CMU dictionary ----------------
 VOW = {"AA": "a", "AE": "æ", "AO": "o", "AW": "au", "AY": "ai", "EH": "e", "ER": "er",
        "EY": "ei", "IH": "i", "IY": "ii", "OW": "ou", "OY": "oi", "UH": "u", "UW": "uu"}
-CON = {"B": "b", "CH": "ch", "D": "d", "DH": "dh", "F": "f", "G": "g", "HH": "j", "JH": "dy",
+CON = {"B": "b", "CH": "ch", "D": "d", "DH": "dh", "F": "f", "G": "g", "HH": "j", "JH": "dj",
        "K": "k", "L": "l", "M": "m", "N": "n", "NG": "ng", "P": "p", "R": "r", "S": "s",
        "SH": "sh", "T": "t", "TH": "th", "V": "v", "W": "w", "Y": "y", "Z": "z", "ZH": "zh"}
 
@@ -57,6 +57,7 @@ def respell_word(w):
     return "-".join(syl), stressed
 
 def respell(text):
+    if text.lower() in C.RESPELL: return C.RESPELL[text.lower()]
     parts = [respell_word(w) for w in re.findall(r"[A-Za-z']+", text)]
     if any(p[0] is None for p in parts): return None
     return " ".join(p[0] for p in parts)
@@ -87,7 +88,7 @@ for g in C.STARTER:
                     "words": ["w:" + w[0] for w in g["words"]]})
 
 industries = []
-check(len(C.INDUSTRIES) == 8, "want 8 industries")
+check(len(C.INDUSTRIES) == 24, "want 24 industries, have %d" % len(C.INDUSTRIES))
 for ind in C.INDUSTRIES:
     check(len(ind["terms"]) == 20, "%s has %d terms, want 20" % (ind["id"], len(ind["terms"])))
     ids = []
@@ -136,6 +137,20 @@ for s, pat in C.MELODY_SENTENCES:
     it = {"id": "s:" + s, "kind": "sent", "en": s, "pattern": pat}
     items.append(it); sentences.append(it["id"])
 
+# ---------------- life facts ----------------
+topic_ids = [tp[0] for tp in C.LIFE_TOPICS]
+facts, fact_seen = [], set()
+for k, (topic, en, es, q, opts) in enumerate(C.FACTS):
+    check(topic in topic_ids, "unknown fact topic " + topic)
+    check(len(opts) == 4 and len(set(opts)) == 4, "fact needs 4 distinct options: " + en[:40])
+    check(en[-1] in ".?!" and es[-1] in ".?!", "fact needs end punctuation: " + en[:40])
+    check(en not in fact_seen, "duplicate fact: " + en[:40]); fact_seen.add(en)
+    fid = "f:%s-%d" % (topic, sum(1 for f in facts if f["topic"] == topic))
+    items.append({"id": fid, "kind": "fact", "topic": topic, "en": en, "es": es, "q": q, "a": opts, "correct": 0})
+    facts.append({"id": fid, "topic": topic})
+for tp in topic_ids:
+    check(sum(1 for f in facts if f["topic"] == tp) == 8, "topic %s needs 8 facts" % tp)
+
 # ---------------- the grade ladder: 13 levels, Flesch-Kincaid gated ----------------
 import readability as RD
 levels = []
@@ -154,8 +169,9 @@ check(len(levels) == 13, "want 13 grades")
 
 # ---------------- memory tricks and pictures ----------------
 industry_terms = {t[0].lower() for ind in C.INDUSTRIES for t in ind["terms"]}
-check(set(C.TRICKS) == industry_terms,
-      "tricks and industry terms differ: missing %s, extra %s" % (sorted(industry_terms - set(C.TRICKS)), sorted(set(C.TRICKS) - industry_terms)))
+first8 = {t[0].lower() for ind in C.INDUSTRIES[:8] for t in ind["terms"]}
+check(first8 <= set(C.TRICKS), "first 8 industries need tricks: missing %s" % sorted(first8 - set(C.TRICKS)))
+check(set(C.TRICKS) <= industry_terms, "tricks for words that are not terms: %s" % sorted(set(C.TRICKS) - industry_terms))
 for en, trick in C.TRICKS.items():
     if en in by_en: by_en[en]["trick"] = trick
 
@@ -202,6 +218,8 @@ for it in items:
         want("es", it["means"])
     if k == "sent":
         want("en", it["en"], False, True); want("en", it["en"], True)
+    if k == "fact":
+        want("en", it["en"], False, True); want("en", it["en"], True); want("es", it["es"])
 for g in C.STARTER: want("es", g["es"]); want("en", g["en"])
 for lv in levels:
     for ps in lv["passages"]:
@@ -214,7 +232,8 @@ for sid, row in U.UI.items():
 if fails:
     print("FAILED %d checks:" % len(fails)); [print("  -", f) for f in fails]; sys.exit(1)
 
-content = {"items": items, "levels": levels, "starter": starter, "industries": industries, "core": core_ids,
+content = {"items": items, "levels": levels, "facts": [f["id"] for f in facts],
+           "topics": [{"id": t[0], "en": t[1], "es": t[2]} for t in C.LIFE_TOPICS], "starter": starter, "industries": industries, "core": core_ids,
            "shortcuts": shortcuts, "traps": traps, "sentences": sentences, "ui": U.UI,
            "spoken": sorted(U.SPOKEN),
            "coverage": {"mass": round(total_mass, 6), "massN": MASS_N,

@@ -80,9 +80,12 @@ function player() {
   VOICE.el.muted = MUTED() || store.get('soundOff', false);
   return VOICE.el;
 }
+/* Stopping playback abandons the old clip on purpose: a sequence that was
+   waiting on it (slow, normal, sentence...) stays stopped instead of waking up
+   and talking over whatever the learner started next. */
 function stopVoice() {
   VOICE.token++;
-  if (VOICE.el) { VOICE.el.pause(); VOICE.el.onended = null; }
+  if (VOICE.el) { VOICE.el.pause(); VOICE.el.onended = null; VOICE.el.onerror = null; }
   try { speechSynthesis.cancel(); } catch {}
 }
 /** Play a clip. Resolves when it ends (or at once if it cannot play). */
@@ -96,7 +99,11 @@ function say(lang, text, slow = false, onTime) {
   a.src = url;
   return new Promise(res => {
     let raf = 0;
-    const done = () => { cancelAnimationFrame(raf); if (onTime) onTime(-1); res(); };
+    let settled = false;
+    /* watchdog: if the current clip stalls (slow network, a paused tab), the
+       screen still moves on. It never fires for a clip that was replaced. */
+    const guard = setTimeout(() => { if (my === VOICE.token) done(); }, 4000 + String(text).length * (slow ? 200 : 120));
+    const done = () => { if (settled) return; settled = true; clearTimeout(guard); cancelAnimationFrame(raf); if (onTime) onTime(-1); res(); };
     a.onended = done; a.onerror = done;
     a.play().then(() => {
       /* the RAF loop never checks a.paused: a muted or slow-to-start clip still
@@ -112,6 +119,8 @@ function say(lang, text, slow = false, onTime) {
 function fallbackSay(lang, text, slow) {
   if (MUTED() || store.get('soundOff', false)) return new Promise(r => setTimeout(r, 400));
   return new Promise(res => {
+    const my = VOICE.token;
+    setTimeout(() => { if (my === VOICE.token) res(); }, 4000 + String(text).length * (slow ? 200 : 120));
     try {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = lang === 'es' ? 'es-MX' : 'en-US';
@@ -168,6 +177,10 @@ async function getMic() {
     audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true }
   });
   return MIC.stream;
+}
+/* turn the microphone fully off (the browser's recording light goes out) */
+function releaseMic() {
+  if (MIC.stream) { MIC.stream.getTracks().forEach(tr => tr.stop()); MIC.stream = null; MIC.warm = true; }
 }
 /** Record until the speaker goes quiet (or maxMs). Also runs speech
     recognition alongside when the browser has it. Returns
@@ -392,6 +405,8 @@ function liveRead(para, onError) {
   };
   try { recog.start(); } catch { failed = true; if (onError) onError('start'); }
   return {
+    /* how far the reader got, without stopping */
+    peek() { return { reached: hit.lastIndexOf(true) + 1, all: spans.length }; },
     stop() {
       stopped = true; try { recog.stop(); } catch {}
       /* only words before the last one heard count as missed; the rest were not reached */

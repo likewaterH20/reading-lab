@@ -72,8 +72,8 @@ UI = {
  "your_turn":   {"en": "Your turn", "es": "Tu turno"},
  "no_mic":      {"en": "Say it out loud, then tap Next.", "es": "Dilo en voz alta y toca Siguiente."},
  "mic_denied":  {"en": "The microphone is off. Say it out loud anyway.", "es": "El micrófono está apagado. Dilo en voz alta de todos modos."},
- "legend":      {"en": "æ between a and e · ʌ short a · ə soft a · ii long i · uu long u · dh tongue between teeth",
-                 "es": "æ entre a y e · ʌ a corta · ə a floja · ii i larga · uu u larga · dh lengua entre los dientes"},
+ "legend":      {"en": "æ between a and e · ʌ short a · ə soft a · ii long i · uu long u · dh tongue between teeth, buzzing · th tongue between teeth, just air · dj the j in DJ · zh the s in measure · j a soft breath",
+                 "es": "æ entre a y e · ʌ a corta · ə a floja · ii i larga · uu u larga · dh lengua entre los dientes, con vibración · th lengua entre los dientes, solo aire · dj como la j de DJ · zh como la ll argentina · j una j muy suave, casi aire"},
 
  "trick_title": {"en": "Memory trick", "es": "Truco para recordar"},
 
@@ -103,7 +103,11 @@ UI = {
  "rd_model":    {"en": "Hear how it sounds", "es": "Escucha cómo suena"},
  "rd_step1":    {"en": "Listen", "es": "Escucha"},
  "rd_step2":    {"en": "Out loud", "es": "En voz alta"},
- "rd_step3":    {"en": "Timed", "es": "Con reloj"},
+ "life":        {"en": "Life", "es": "Vida"},
+ "rd_read_all": {"en": "Keep going. Read to the end, then tap Done.", "es": "Sigue. Lee hasta el final y luego toca Terminé."},
+ "try_again":   {"en": "That take did not record. Tap Record to try again.", "es": "No se grabó. Toca Grabar para intentarlo otra vez."},
+ "rd_step3":    {"en": "Questions", "es": "Preguntas"},
+ "rd_too_soon": {"en": "That was too fast to be read. Read it all, then tap Done.", "es": "Eso fue demasiado rápido para leerlo. Léelo completo y luego toca Terminé."},
  "rd_aloud_go": {"en": "Start reading out loud", "es": "Leer en voz alta"},
  "rd_aloud_hint": {"en": "Read at your normal pace. Each word turns teal when the app hears it.", "es": "Lee a tu ritmo normal. Cada palabra se pone verde cuando la app la escucha."},
  "rd_aloud_off": {"en": "The microphone is off, so this step is skipped.", "es": "El micrófono está apagado, así que este paso se salta."},
