@@ -188,6 +188,74 @@ async function getMic() {
   });
   return MIC.stream;
 }
+/* EAR: one recogniser kept open across rounds, so the microphone is already
+   listening when a word appears, and a round ends the moment you finish
+   saying it: a match ends it at once, a final non-match ends it as a miss,
+   and when the mic stream is open, one second of quiet after speech ends it
+   with whatever was heard so far. */
+const EAR = {
+  r: null, want: false, cur: null, ver: 0, seen: 0,
+  start() {
+    if (!SR || this.want) return;
+    this.want = true; this._open();
+    if (micPossible() && !MIC.denied && !MIC.stream) getMic().catch(() => {});
+  },
+  _open() {
+    const self = this; let r;
+    try { r = new SR(); } catch { return; }
+    r.lang = 'en-US'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 3;
+    r.onresult = e => {
+      const c = self.cur;
+      const from = c ? Math.max(e.resultIndex, c.from) : e.results.length;
+      for (let i = from; c && i < e.results.length && self.cur === c; i++) c.onResult(e.results[i]);
+      self.seen = e.results.length;
+    };
+    r.onerror = ev => {
+      if (ev.error !== 'not-allowed' && ev.error !== 'service-not-allowed') return;
+      MIC.srOff = true; const c = self.cur; self.stop(); if (c && c.onOff) c.onOff();
+    };
+    r.onend = () => { if (self.r !== r) return; self.r = null; self.seen = 0; if (self.cur) self.cur.from = 0; if (self.want) self._open(); };
+    self.r = r; try { r.start(); } catch {}
+  },
+  /* wait for one word or phrase; cb(ok, heard) once, then the ear idles until the next listen */
+  listen(word, cb, onOff) {
+    const want = norm(word).split(' ').filter(Boolean);
+    const my = ++this.ver;
+    let vad = null;
+    const c = this.cur = { from: this.seen, heard: '', onOff, onResult: res => {
+      let ok = false;
+      for (let k = 0; k < res.length && !ok; k++) {
+        const hw = norm(res[k].transcript).split(' ').filter(Boolean);
+        ok = want.every(w => hw.some(x => x === w || (w.length > 3 && lev(x, w) <= 1)));
+      }
+      c.heard = norm(res[0].transcript).trim();
+      if (ok) finish(true); else if (res.isFinal) finish(false);
+    } };
+    const finish = ok => { if (this.ver !== my) return; this.ver++; this.cur = null; if (vad) vad(); cb(ok, c.heard); };
+    /* end of speech by ear: speech, then one second of quiet, then a short grace for the final result */
+    if (MIC.stream && MIC.stream.active) {
+      try {
+        const ctx = audioCtx(); if (ctx.state === 'suspended') ctx.resume();
+        const src = ctx.createMediaStreamSource(MIC.stream), an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
+        const buf = new Float32Array(an.fftSize); let spoke = false, quiet = 0;
+        const iv = setInterval(() => {
+          if (this.ver !== my) return;
+          an.getFloatTimeDomainData(buf); let e = 0; for (const x of buf) e += x * x;
+          const rms = Math.sqrt(e / buf.length), now = performance.now();
+          if (rms > 0.02) { spoke = true; quiet = 0; }
+          else if (spoke) { quiet = quiet || now; if (now - quiet > 1000) { clearInterval(iv); setTimeout(() => finish(false), 500); } }
+        }, 50);
+        vad = () => { clearInterval(iv); try { src.disconnect(); } catch {} };
+      } catch { vad = null; }
+    }
+    return { cancel: () => { if (this.ver === my) { this.ver++; this.cur = null; if (vad) vad(); } } };
+  },
+  stop() {
+    this.want = false; this.cur = null; this.ver++;
+    const r = this.r; this.r = null;
+    if (r) { try { r.onend = null; r.stop(); } catch {} }
+  },
+};
 /* turn the microphone fully off (the browser's recording light goes out) */
 function releaseMic() {
   if (MIC.stream) { MIC.stream.getTracks().forEach(tr => tr.stop()); MIC.stream = null; MIC.warm = true; }

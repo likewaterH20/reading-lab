@@ -438,6 +438,8 @@ function endRun() {
   /* leaving a session must never leave the microphone listening */
   if (r.reader) try { r.reader.stop(); } catch {}
   releaseMic();
+  /* owning three quarters of your level's words opens the next one, test or no test */
+  const op = openByPractice(); if (op && !r.opened) r.opened = op.g;
   snapshot(); save();
   endScreen(r);
 }
@@ -1061,6 +1063,16 @@ async function introCard(host, e) {
     for (const p of pairs.slice(0, 3)) {
       if (!alive(my)) return; await say('es', p.es); if (!alive(my)) return; await wait(200); if (!alive(my)) return; await say('en', p.en); await wait(300); if (!alive(my)) return;
     }
+  } else if (e.intro === 'fix') {
+    /* the coach steps in after a game: the pattern you missed, on the words you missed */
+    const words = (e.ids || []).map(id => ITEMS[id]).filter(Boolean);
+    mount(host, h('div', { class: 'eyebrow' }, t('fix_eyebrow')),
+      h('h2', null, e.key ? t('pat_' + e.key) : t('fix_words')),
+      h('p', { class: 'lead' }, e.key ? t('fx_spelling_' + e.key) : t('fix_words_sub')),
+      h('div', { class: 'tiles', translate: 'no', lang: 'en' }, words.map(w => h('button', { class: 'linkish', onclick: () => say('en', w.en) }, markPattern(w.en, e.key)))),
+      h('p', { class: 'note' }, t('fix_tap')),
+      h('div', { class: 'actions' }, nb));
+    for (const w of words.slice(0, 3)) { if (!alive(my)) return; await say('en', w.en); await wait(250); }
   } else if (e.intro === 'trap') {
     const it = ITEMS[e.key];
     mount(host, h('div', { class: 'eyebrow' }, t('trap_title')),

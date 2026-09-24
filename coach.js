@@ -187,8 +187,12 @@ function gamePool(id) {
   const focus = id === 'say' ? topStumbles(8)
     : id === 'mix' ? [...topStumbles(6), ...(pat ? started.filter(it => patternOf(it.en, pat)) : [])]
     : pat ? started.filter(it => patternOf(it.en, pat)) : [];
-  const rest = started.filter(it => !focus.includes(it)).sort(() => Math.random() - 0.5);
-  let pool = [...focus.sort(() => Math.random() - 0.5), ...rest];
+  /* the words of your current level you do not own yet: the game is a second road through the levels */
+  const lvl = levelItems(P.grade).map(id => ITEMS[id])
+    .filter(it => it && it.kind === 'word' && !it.en.includes(' ') && it.en.length >= 3 && !focus.includes(it) && !(CARDS[it.id] && CARDS[it.id].s >= OWNED_S))
+    .sort(() => Math.random() - 0.5).slice(0, 12);
+  const rest = started.filter(it => !focus.includes(it) && !lvl.includes(it)).sort(() => Math.random() - 0.5);
+  let pool = [...focus.sort(() => Math.random() - 0.5), ...lvl, ...rest];
   if (pool.length < 20) pool = pool.concat(CONTENT.core.map(k => ITEMS[k]).filter(it => it.en.length >= 3).sort(() => Math.random() - 0.5));
   return pool.slice(0, 80);
 }
@@ -223,7 +227,12 @@ function gameScreen() {
     host));
   G.ui = { host, timeBar, scoreEl, ghostEl };
   mount(host, h('h2', null, t(def.key)), h('p', { class: 'lead' }, t(def.sub)),
-    h('div', { class: 'actions' }, primary(t('g_go'), () => { G.t0 = performance.now(); G.clock = setInterval(tick, 100); nextRound(); })));
+    h('div', { class: 'actions' }, primary(t('g_go'), () => {
+      G.t0 = performance.now(); G.wall = Date.now();
+      /* the ear opens now, so it is already listening when the first say-it word appears */
+      if (G.kinds.includes('say')) EAR.start();
+      G.clock = setInterval(tick, 100); nextRound();
+    })));
   function tick() {
     if (GAME !== G || G.over) return clearInterval(G.clock);
     const el = performance.now() - G.t0, left = Math.max(0, GAME_MS - el);
@@ -255,7 +264,59 @@ function gradeInGame(it, g, typed) {
   const extra = { t: Date.now(), id: it.id, g, ph: 'game:' + GAME.kind, w: GAME.kind === 'spell' ? 1 : undefined };
   if (typed != null && GAME.kind === 'spell') extra.pat = spellPatterns(it.en, typed);
   LOG.push(extra);
-  if (c && today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, g);
+  /* a word met first in the game starts its memory card here; replays the same day do not farm 'owned' */
+  if (!c) CARDS[it.id] = FSRS.rate(null, g);
+  else if (today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, g);
+}
+/* PLAY OPENS LEVELS: own three quarters of your level's words, by daily or by
+   game, and the next level opens without waiting for the reading test. */
+function openByPractice() {
+  if (P.grade >= NLEV) return null;
+  const ids = levelItems(P.grade); if (ids.length < 5) return null;
+  const own = ids.filter(id => CARDS[id] && CARDS[id].s >= OWNED_S).length;
+  if (own < Math.ceil(ids.length * 0.75)) return null;
+  const g = P.grade + 1;
+  P.grade = g;
+  LOG.push({ t: Date.now(), kind: 'open', g, by: 'play', own, of: ids.length });
+  return { g, own, of: ids.length };
+}
+/* THE COACH STEPS IN: misses in one game that share a spelling pattern, or
+   just enough misses, become a two-minute fix right after the game. */
+function gameStruggle(G) {
+  const L = LOG.filter(x => x.t >= G.wall && x.ph && x.ph.startsWith('game:') && x.g < 3 && ITEMS[x.id]);
+  if (L.length < 2) return null;
+  const pat = {};
+  for (const x of L) for (const p of (x.pat || [])) pat[p] = (pat[p] || 0) + 1;
+  const top = Object.entries(pat).sort((a, b) => b[1] - a[1])[0];
+  const missed = [...new Set(L.map(x => x.id))];
+  if (top && top[1] >= 2) {
+    const p = top[0];
+    const same = missed.filter(id => patternOf(ITEMS[id].en, p));
+    const more = Object.keys(CARDS).filter(id => ITEMS[id] && ITEMS[id].kind === 'word' && !missed.includes(id) && patternOf(ITEMS[id].en, p))
+      .sort(() => Math.random() - 0.5).slice(0, Math.max(0, 5 - same.length));
+    return { pat: p, n: top[1], ids: [...same, ...more] };
+  }
+  return { pat: null, n: missed.length, ids: missed.slice(0, 5) };
+}
+function startFix(f) {
+  document.body.classList.remove('running');
+  startRun([{ intro: 'fix', key: f.pat || '', ids: f.ids }, ...f.ids.map(id => ({ id, mode: 'review', focus: true }))]);
+}
+/* the letters of a word that carry a spelling pattern, for marking */
+function patternRx(p) {
+  if (p === 'double') return /([a-z])\1/g;
+  if (p === 'silent') return /^kn|^wr|^ps|mb$|mn$|gh|pt|bt|lk|lm|stle|sten|^ho(n|u)|[^aeiou]e$/g;
+  if (p === 'endings') return /(tion|sion|ous|ence|ance|able|ible|ment|ed|ly|ure|ture)$/g;
+  if (p === 'vowels') return /(ea|ee|ie|ei|ou|oo|ai|au|oa)/g;
+  if (p === 'consonants') return /(th|ch|sh|ph|ck|qu)/g;
+  return null;
+}
+function markPattern(word, p) {
+  const rx = patternRx(p); if (!rx) return [word];
+  const out = []; let last = 0; const x = word.toLowerCase();
+  for (const m of x.matchAll(rx)) { if (m.index > last) out.push(word.slice(last, m.index)); out.push(h('b', { class: 'hl' }, word.slice(m.index, m.index + m[0].length))); last = m.index + m[0].length; }
+  if (last < word.length) out.push(word.slice(last));
+  return out;
 }
 function nextRound() {
   const G = GAME; if (!G || G.over) return;
@@ -288,54 +349,42 @@ function nextRound() {
     say('en', it.en);
   } else if (kind === 'say') {
     const status = h('p', { class: 'note' }, t('g_say_now'));
+    /* the ear is already open; it ends the round the moment you finish the word */
+    const ear = EAR.listen(it.en, (ok, heard) => {
+      if (G.token !== my || G.over) return;
+      if (ok) { gotOne(it); return nextRound(); }
+      G.token++; missOne(it);
+      status.textContent = heard ? t('heard', { w: heard }) : t('g_say_miss');
+      setTimeout(() => GAME === G && !G.over && nextRound(), 700);
+    }, () => {
+      /* the mic was refused: in the mixed game the say-it rounds drop out and the game goes on */
+      if (GAME !== G || G.over) return;
+      G.kinds = G.kinds.filter(k => k !== 'say'); G.deck = []; G.token++; nextRound();
+    });
     mount(host, label, wordBlock(it, true, false), status,
-      h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'), btn(t('skip'), () => { stopListen(); missOne(it); nextRound(); }, 'ghost')));
-    listenFor(it.en, ok => { if (G.token !== my) return; if (ok) { gotOne(it); nextRound(); } });
-    /* recognition can miss a short word for a long time; after 6 s the round
-       moves on ungraded so the clock is never eaten by the mic */
+      h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'), btn(t('skip'), () => { if (G.token !== my) return; ear.cancel(); G.token++; missOne(it); nextRound(); }, 'ghost')));
+    /* nothing heard at all for 6 s: the round moves on ungraded so the clock is never eaten by the mic */
     setTimeout(() => {
       if (G.token !== my || G.over) return;
-      G.token++; stopListen(); status.textContent = t('g_say_miss');
+      G.token++; ear.cancel(); status.textContent = t('g_say_miss');
       setTimeout(() => GAME === G && !G.over && nextRound(), 700);
     }, 6000);
   }
 }
-/* listen continuously and call back when the word is heard */
-let LISTEN = null;
-function stopListen() { if (LISTEN) { try { LISTEN.onend = null; LISTEN.stop(); } catch {} LISTEN = null; } }
-function listenFor(word, cb) {
-  stopListen();
-  if (!SR) return;
-  const r = new SR(); r.lang = 'en-US'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 3;
-  const want = norm(word).split(' ');
-  r.onresult = e => {
-    for (let i = e.resultIndex; i < e.results.length; i++) for (let k = 0; k < e.results[i].length; k++) {
-      const heard = norm(e.results[i][k].transcript).split(' ');
-      if (want.every(w => heard.some(hw => hw === w || (w.length > 3 && lev(hw, w) <= 1)))) { stopListen(); cb(true); return; }
-    }
-  };
-  r.onerror = ev => {
-    if (ev.error !== 'not-allowed' && ev.error !== 'service-not-allowed') return;
-    MIC.srOff = true; stopListen();
-    /* in the mixed game, the say-it rounds drop out and the game goes on */
-    if (GAME && GAME.id === 'mix') { GAME.kinds = GAME.kinds.filter(k => k !== 'say'); GAME.deck = []; nextRound(); }
-    else endGame(false);
-  };
-  r.onend = () => { if (LISTEN === r) try { r.start(); } catch {} };
-  LISTEN = r;
-  try { r.start(); } catch {}
-}
 function endGame(quit) {
   const G = GAME; if (!G || G.over) return;
-  G.over = true; clearInterval(G.clock); stopListen(); stopVoice();
+  G.over = true; clearInterval(G.clock); EAR.stop(); stopVoice();
   const st = gameStats(G.id);
   const record = !quit && G.score > st.best;
+  let opened = null, fix = null;
   if (!quit) {
     st.plays.push({ t: Date.now(), score: G.score });
     if (record) { st.best = G.score; st.ghost = G.times.slice(); }
     LOG.push({ t: Date.now(), kind: 'game', game: G.id, score: G.score, record });
     const saidN = G.sayRight + G.sayMissed.length;
     if (saidN) LOG.push({ t: Date.now(), kind: 'say', share: G.sayRight / saidN, missed: G.sayMissed });
+    opened = openByPractice();
+    fix = gameStruggle(G);
   }
   snapshot(); save();
   GAME = null;
@@ -346,9 +395,15 @@ function endGame(quit) {
     h('div', { class: 'hero' },
       h('div', { class: 'stat big' }, h('b', null, String(G.score)), h('span', null, t('g_score'))),
       h('div', { class: 'stat big' }, h('b', null, String(st.best)), h('span', null, t('g_best')))),
+    opened ? h('div', { class: 'card best' }, h('div', { class: 'eyebrow ok' }, t('g_open')),
+      h('p', { class: 'lead' }, t('open_by_play', { g: gradeName(opened.g), a: opened.own, b: opened.of }))) : null,
+    fix ? h('div', { class: 'card week' }, h('div', { class: 'eyebrow' }, t('fix_eyebrow')),
+      h('p', { class: 'lead' }, fix.pat ? t('fix_why_pat', { n: fix.n, p: t('pat_' + fix.pat) }) : t('fix_why', { n: fix.n })),
+      h('div', { class: 'actions' }, primary(t('fix_go'), () => startFix(fix)))) : null,
     last.length > 1 ? lineChart(last, v => String(Math.round(v))) : null,
     G.missed.length ? h('p', { class: 'note' }, t('g_missed') + ' ' + [...new Set(G.missed)].slice(0, 8).join(', ')) : null,
-    h('div', { class: 'actions' }, btn(t('g_again'), () => startGame(G.id)), primary(t('next'), () => { document.body.classList.remove('running'); render(); })));
+    h('div', { class: 'actions' }, btn(t('g_again'), () => startGame(G.id)), fix ? btn(t('next'), () => { document.body.classList.remove('running'); render(); }, 'ghost')
+      : primary(t('next'), () => { document.body.classList.remove('running'); render(); })));
 }
 function gamesCard() {
   /* one game: the three kinds of round, mixed */

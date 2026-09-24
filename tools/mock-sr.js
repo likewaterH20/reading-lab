@@ -6,13 +6,25 @@ window.__srText = window.__srText || '';
 (() => {
   const Pr = webkitSpeechRecognition.prototype;
   Pr.start = function () {
-    const self = this;
+    const self = this; window.__srLive = self; self.__results = [];
     setTimeout(() => {
+      if (!window.__srText) return;
       const r = [{ transcript: window.__srText }]; r.isFinal = true;
-      self.onresult && self.onresult({ results: [r], resultIndex: 0 });
+      self.__results.push(r);
+      self.onresult && self.onresult({ results: self.__results, resultIndex: self.__results.length - 1 });
     }, 30);
   };
-  Pr.stop = function () { const self = this; setTimeout(() => self.onend && self.onend(), 10); };
+  Pr.stop = function () { const self = this; if (window.__srLive === self) window.__srLive = null; setTimeout(() => self.onend && self.onend(), 10); };
+  /* speak into whichever recogniser is open now (the game's EAR): __srSay('word') or __srSay('wo', false) for an interim */
+  window.__srSay = (text, final = true) => {
+    const self = window.__srLive; if (!self) return false;
+    const rs = self.__results; const last = rs[rs.length - 1];
+    /* an open interim grows into the new text only when it is a prefix of it, as Chrome does; anything else is a new utterance */
+    if (last && !last.isFinal && text.startsWith(last[0].transcript)) { last[0] = { transcript: text }; last.isFinal = final; }
+    else { const r = [{ transcript: text }]; r.isFinal = final; rs.push(r); }
+    self.onresult && self.onresult({ results: rs, resultIndex: rs.length - 1 });
+    return true;
+  };
 })();
 window.__errs = [];
 addEventListener('error', e => __errs.push(e.message + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
