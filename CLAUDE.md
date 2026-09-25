@@ -17,8 +17,11 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
 - Adult tone: no XP, hearts, points, badges, emoji, fanfares. Competition is
   only against your own record (personal best + ghost).
 - Simple, easy-to-read font everywhere (Atkinson Hyperlegible). One level card
-  (current level, browse back only, future hidden). No games: the 60-second
-  challenge was removed on 2026-09-24 at his word ("end the 60sec challenge").
+  (current level, browse back only, future hidden). The 60-second challenge
+  was removed 9/24 ("end the 60sec challenge"); on 9/25 he asked for "some
+  type of fun arcade style of word and reading game" and the Daily card went
+  away ("dailies and levels are pretty much the same"): home = level card +
+  Arcade card. Arcade = waves, combo, 3 misses, record + ghost. Still adult.
 - Play opens levels: own 75% of your level's words and the next opens at the
   end of the session (`openByPractice`). The coach steps in on the end screen
   when two misses in a session share a spelling pattern (`runStruggle`).

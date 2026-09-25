@@ -404,20 +404,15 @@ function todayScreen() {
   const newWeek = P.weekSeen !== ws && LOG.some(x => x.t < ws);
   const weekCard = newWeek ? weeklyReport() : null;
   if (weekCard) weekCard.appendChild(h('div', { class: 'actions' }, primary(t('wk_ok'), () => { P.weekSeen = ws; save(); render(); })));
-  /* minimal: the session first, one line about it, one button; then the daily
-     read; then the level. Numbers live in Progress. */
-  const plan = [t('due_n', { n: pv.due }), t('new_n', { n: pv.fresh }), canRead() ? t('rd_title') + ' · ' + gradeName(P.grade) : null].filter(Boolean).join(' · ');
+  /* his 9/25 word: "dailies and levels are pretty much the same". One path:
+     playing your level IS the session (reviews + this level's words + the
+     reading test). Then the arcade. Numbers live in Progress. */
+  const plan = nothing ? t('done_today', { w: whenNext() })
+    : [t('due_n', { n: pv.due }), t('new_n', { n: pv.fresh }), canRead() ? t('rd_title') : null].filter(Boolean).join(' · ') + ' · ' + t('daily_len');
   screen(
     weekCard,
-    h('div', { class: 'card plan' },
-      h('div', { class: 'row between' }, h('h2', null, t('daily')), h('span', { class: 'note' }, t('daily_len'))),
-      nothing
-        ? h('p', { class: 'lead' }, t('done_today', { w: whenNext() }))
-        : [h('p', { class: 'note' }, plan),
-           h('div', { class: 'actions' }, primary(doneToday ? t('go_more') : t('go'), () => startRun(pv.q)))],
-      /* the daily read lives inside the same card: one "daily", one line, one small button */
-      canRead() ? dailyReadRow() : null),
-    levelCard());
+    levelCard({ plan, q: nothing ? null : pv.q, more: doneToday }),
+    arcadeCard());
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;
@@ -434,13 +429,18 @@ function levelTile(L) {
 /* One level at a time: your current level, and the ones you have done behind
    it. Levels ahead stay hidden until you open them. */
 let LVIEW = null;
-function levelCard() {
+function levelCard(today) {
   if (LVIEW == null || LVIEW > P.grade || LVIEW < 1) LVIEW = P.grade;
   const g = LVIEW, L = CONTENT.levels[g - 1];
   const ids = levelItems(g);
   const own = ids.filter(id => CARDS[id] && CARDS[id].s >= OWNED_S).length;
   const passed = L.passages.some(p => P.passed[p.id]);
   const nav = (d) => { LVIEW = g + d; render(); };
+  const current = g === P.grade && today;
+  /* your level plays the full session (reviews, new words, the test); an older level replays its own words */
+  const play = current
+    ? (today.q ? primary(today.more ? t('go_more') : t('lv_play'), () => startRun(today.q)) : null)
+    : primary(t('lv_play'), () => startLevel(g));
   return h('div', { class: 'levelcard' + (g === P.grade ? ' current' : '') },
     h('div', { class: 'row between' },
       g > 1 ? h('button', { class: 'ghost small', onclick: () => nav(-1), 'aria-label': t('lv_prev') }, '‹ ' + gradeName(g - 1)) : h('span'),
@@ -449,7 +449,9 @@ function levelCard() {
     h('p', { class: 'lead' }, levelLabel(g)),
     h('div', { class: 'lbar' }, h('i', { style: `width:${ids.length ? Math.round(100 * own / ids.length) : 0}%` })),
     h('p', { class: 'note' }, t('lv_owned', { a: own, b: ids.length }) + (g === P.grade ? ' · ' + t('lv_current') : '')),
-    h('div', { class: 'actions' }, primary(t('lv_play'), () => startLevel(g))));
+    current ? h('p', { class: today.q ? 'note' : 'lead' }, today.plan) : null,
+    play ? h('div', { class: 'actions' }, play) : null,
+    current && canRead() ? dailyReadRow() : null);
 }
 /* play a level: its words (new first, then the weakest), then its reading test */
 function startLevel(g) {

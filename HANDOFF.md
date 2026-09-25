@@ -43,9 +43,18 @@ Rafael plays on **4400**. Build and test on **4401**. Release with rsync to the
 An adult reading and pronunciation coach for Spanish-English bilinguals and
 for adults who cannot read English yet. Neural voices (Andrew EN, Dalia ES).
 
-**Home (minimal, 2026-09-24):** Daily session card (one line, one button),
-then the Daily Read card, then one level card (current level, browse back
-only). Stats live in Progress. The 60-second challenge was REMOVED at his word.
+**Home (2026-09-25, his word "dailies and levels are pretty much the same.
+lets get rid of dailies and make it some type of fun arcade style of word and
+reading game"):** ONE level card (your level = the full session: reviews +
+this level's words + use-it + the reading test, via buildSession; older
+levels replay their own words via startLevel) with the daily read as a row
+inside it, then the ARCADE card. Stats live in Progress.
+
+**Arcade** (coach.js): waves of 8 rounds, kinds cycle hear-and-pick,
+hear-and-type, read-and-fill (maze from your level); each 3 waves 12%
+faster; combo adds points; 3 misses end the run; personal record + ghost
+(`P.arcade`); every answer feeds FSRS once a day per word (LOG ph
+`arcade:kind`, kind `arcade` on run end). Adult: points, waves, record only.
 
 **His rules from 2026-09-24, verbatim:** "This app needs to be user-friendly
 super extremely minimal but effective." "We need built-in automation like move

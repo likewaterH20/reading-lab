@@ -33,7 +33,12 @@ window.__log = []; window.__done = false;
     try { const ids = CONTENT.items.filter(i => i.kind === 'word' && /([a-z])\1/.test(i.en)).slice(0, 3).map(i => i.id);
       RUN = null; startFix({ pat: 'double', n: 2, ids }); n++; await sleep(120); stopVoice();
       if (!document.querySelector('.stage')) log.push('NO STAGE ' + tag + ' fix'); } catch (e) { log.push('THROW ' + tag + ' fix: ' + e.message); }
-    RUN = null; P.weekSeen = null;
+    /* the arcade: one round of each kind, a miss, then the end screen */
+    try { RUN = null; startArcade(); n++; await sleep(60); document.querySelector('[data-primary]').click(); await sleep(120); stopVoice();
+      for (let k = 0; k < 3 && ARC; k++) { ARC.n = ARC_ROUNDS; ARC.wave = k + 1; ARC.token++; arcadeRound(); n++; await sleep(80); stopVoice(); }
+      if (ARC) { ARC.misses = 3; endArcade(false); }
+      if (!document.querySelector('.hero')) log.push('NO END ' + tag + ' arcade'); } catch (e) { log.push('THROW ' + tag + ' arcade: ' + e.message); }
+    ARC = null; RUN = null; P.weekSeen = null;
     for (const tab of ['today','words','progress']) { try { TAB = tab; RUN = null; render(); n++; } catch (e) { log.push('THROW ' + tag + ' tab ' + tab + ': ' + e.message); } }
     const bad = document.body.textContent.includes('[object') || document.body.textContent.includes('undefined');
     log.push(tag + ' screens ' + n + (bad ? ' | STRAY TEXT ([object / undefined) on page' : ''));

@@ -225,6 +225,183 @@ function markPattern(word, p) {
   return out;
 }
 
+/* ============================ ARCADE ============================
+   His 9/25 word: "some type of fun arcade style of word and reading game".
+   Waves of eight rounds. Wave kinds cycle: hear it and pick the spelling,
+   hear it and type it, read a sentence and pick the missing word. Every
+   wave is a little faster. Combo grows with each right answer; three misses
+   end the run. You race your own record and its ghost. Every answer is real
+   retrieval, so it still feeds memory (once a day per word). Adult: points,
+   waves and a record, nothing else. */
+const ARC_BASE = { sound: 7000, spell: 9000, read: 14000 };
+const ARC_ROUNDS = 8;
+let ARC = null;
+function arcadeStats() { P.arcade = P.arcade || { best: 0, ghost: [], plays: [] }; return P.arcade; }
+/* four look-alikes: same length, one or two letters apart */
+function lookAlikes(word) {
+  const cands = CONTENT.items.filter(it => it.kind === 'word' && !it.en.includes(' ') && it.en !== word && Math.abs(it.en.length - word.length) <= 1);
+  const near = cands.filter(it => lev(it.en.toLowerCase(), word.toLowerCase()) <= 2).map(it => it.en);
+  const out = [...new Set(near)].sort(() => Math.random() - 0.5).slice(0, 3);
+  while (out.length < 3 && cands.length) { const r = cands[Math.floor(Math.random() * cands.length)].en; if (!out.includes(r)) out.push(r); }
+  return [word, ...out].sort(() => Math.random() - 0.5);
+}
+/* words for the run: stumbles and the weak pattern first, then your level's words, then what you have started */
+function arcadePool() {
+  const ok = it => it && it.kind === 'word' && !it.en.includes(' ') && it.en.length >= 3;
+  const started = Object.keys(CARDS).map(k => ITEMS[k]).filter(ok);
+  const pat = topPattern();
+  const focus = [...topStumbles(6), ...(pat ? started.filter(it => patternOf(it.en, pat)) : [])].filter(ok);
+  const lvl = levelItems(P.grade).map(id => ITEMS[id]).filter(it => ok(it) && !focus.includes(it)).sort(() => Math.random() - 0.5).slice(0, 12);
+  const rest = started.filter(it => !focus.includes(it) && !lvl.includes(it)).sort(() => Math.random() - 0.5);
+  let pool = [...focus.sort(() => Math.random() - 0.5), ...lvl, ...rest];
+  if (pool.length < 24) pool = pool.concat(CONTENT.core.map(k => ITEMS[k]).filter(ok).sort(() => Math.random() - 0.5));
+  return [...new Set(pool)].slice(0, 120);
+}
+function startArcade() {
+  stopVoice();
+  ARC = { score: 0, combo: 0, bestCombo: 0, misses: 0, wave: 1, n: 0, pool: arcadePool(), i: 0, token: 0, over: false,
+          t0: 0, wall: 0, times: [], used: new Set(), missed: [] };
+  arcadeScreen();
+}
+const arcKind = wave => ['sound', 'spell', 'read'][(wave - 1) % 3];
+const arcMs = (wave, kind) => Math.round(ARC_BASE[kind] * Math.pow(0.88, Math.floor((wave - 1) / 3)));
+function arcadeScreen() {
+  const A = ARC, st = arcadeStats();
+  document.body.classList.add('running');
+  const host = h('div', { class: 'stage arcade' });
+  const waveEl = h('span', { class: 'eyebrow' }, t('ar_wave', { n: 1 }));
+  const timeBar = h('div', { class: 'track' }, h('i', { style: 'width:100%' }));
+  const scoreEl = h('b', null, '0'), comboEl = h('b', null, '0'), missEl = h('b', null, '0');
+  const ghostEl = h('span', { class: 'ghost' }, st.best ? t('g_ghost', { n: 0 }) : '');
+  mount(APP(), h('section', { class: 'screen run' },
+    h('div', { class: 'runbar' }, waveEl, timeBar, h('button', { class: 'ghost small', onclick: () => endArcade(true) }, t('close_x'))),
+    h('div', { class: 'row between' },
+      h('div', { class: 'stat' }, scoreEl, h('span', null, t('ar_score'))),
+      h('div', { class: 'stat' }, comboEl, h('span', null, t('ar_combo'))),
+      h('div', { class: 'stat' }, missEl, h('span', null, t('ar_misses') + ' / 3')),
+      ghostEl),
+    host));
+  A.ui = { host, waveEl, timeBar, scoreEl, comboEl, missEl, ghostEl };
+  mount(host, h('h2', null, t('ar_title')), h('p', { class: 'lead' }, t('ar_sub')),
+    h('p', { class: 'note' }, st.best ? t('g_best') + ': ' + st.best : t('ar_new')),
+    h('div', { class: 'actions' }, primary(t('ar_go'), () => { A.t0 = performance.now(); A.wall = Date.now(); arcadeRound(); })));
+}
+function arcRight(it, kind) {
+  const A = ARC;
+  A.combo++; A.bestCombo = Math.max(A.bestCombo, A.combo);
+  A.score += 10 * A.wave + A.combo;
+  A.times.push([performance.now() - A.t0, A.score]);
+  A.ui.scoreEl.textContent = String(A.score); A.ui.comboEl.textContent = String(A.combo);
+  arcGrade(it, 3, kind);
+}
+function arcMiss(it, kind, typed) {
+  const A = ARC;
+  A.combo = 0; A.misses++; if (it) A.missed.push(it.en);
+  A.ui.comboEl.textContent = '0'; A.ui.missEl.textContent = String(A.misses);
+  if (it) arcGrade(it, 1, kind, typed);
+}
+/* a round is real retrieval, so it updates memory, once a day per word */
+function arcGrade(it, g, kind, typed) {
+  if (!it || !it.id) return;
+  const c = CARDS[it.id];
+  const extra = { t: Date.now(), id: it.id, g, ph: 'arcade:' + kind, w: kind === 'spell' ? 1 : undefined };
+  if (typed != null && kind === 'spell') extra.pat = spellPatterns(it.en, typed);
+  LOG.push(extra);
+  if (!c) CARDS[it.id] = FSRS.rate(null, g);
+  else if (today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, g);
+}
+function arcadeRound() {
+  const A = ARC; if (!A || A.over) return;
+  if (A.n >= ARC_ROUNDS) { A.n = 0; A.wave++; A.ui.waveEl.textContent = t('ar_wave', { n: A.wave }); }
+  A.n++;
+  const kind = arcKind(A.wave), ms = arcMs(A.wave, kind);
+  const my = ++A.token, host = A.ui.host;
+  let it = null, item = null;
+  if (kind === 'read') { item = mazeItem(P.grade, A.used) || mazeItem(Math.max(1, P.grade - 1), A.used); if (!item) { A.n = ARC_ROUNDS; return arcadeRound(); } }
+  else it = A.pool[A.i++ % A.pool.length];
+  /* the clock for this round */
+  const bar = A.ui.timeBar.firstChild; bar.style.transition = 'none'; bar.style.width = '100%';
+  requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = `width ${ms}ms linear`; bar.style.width = '0%'; }));
+  const after = (fn, delay) => setTimeout(() => { if (ARC === A && !A.over) fn(); }, delay);
+  const timeout = setTimeout(() => {
+    if (A.token !== my || A.over) return;
+    A.token++; arcMiss(it, kind);
+    mount(host, h('div', { class: 'eyebrow' }, t('ar_time')), it ? wordBlock(it, true, false) : h('p', { class: 'sentence' }, item.before + ' ' + item.word + item.after));
+    if (A.misses >= 3) return after(() => endArcade(false), 900);
+    after(arcadeRound, 900);
+  }, ms);
+  const settle = (ok, typed) => {
+    if (A.token !== my || A.over) return;
+    A.token++; clearTimeout(timeout);
+    if (ok) { arcRight(it || { en: item.word }, kind); return after(arcadeRound, ok && kind === 'spell' ? 350 : 250); }
+    arcMiss(it, kind, typed);
+    if (A.misses >= 3) return after(() => endArcade(false), 1000);
+    after(arcadeRound, 900);
+  };
+  const label = h('div', { class: 'eyebrow' }, t(kind === 'sound' ? 'g_k_sound' : kind === 'spell' ? 'g_k_spell' : 'place_q'));
+  if (kind === 'spell') {
+    const inp = input(v => {
+      if (!v.trim()) return;
+      if (isRight(v, it.en)) settle(true);
+      else { mount(host, label, letterDiff(it.en, v)); settle(false, v); }
+    });
+    mount(host, label, listenRow(() => say('en', it.en), () => say('en', it.en, true)), inp);
+    inp.focus(); say('en', it.en);
+  } else if (kind === 'sound') {
+    mount(host, label, listenRow(() => say('en', it.en), () => say('en', it.en, true)),
+      h('div', { class: 'choices grid' }, lookAlikes(it.en).map(o => h('button', { class: 'choice', translate: 'no', onclick: ev => {
+        if (A.token !== my) return; ev.currentTarget.classList.add(o === it.en ? 'right' : 'wrong'); settle(o === it.en);
+      } }, h('b', null, o)))));
+    say('en', it.en);
+  } else {
+    mount(host, label,
+      h('p', { class: 'sentence', translate: 'no', lang: 'en' }, item.before + ' ', h('span', { class: 'blank' }, '______'), item.after),
+      h('div', { class: 'choices grid' }, item.opts.map(o => h('button', { class: 'choice', translate: 'no', lang: 'en', onclick: ev => {
+        if (A.token !== my) return; ev.currentTarget.classList.add(o === item.word ? 'right' : 'wrong'); settle(o === item.word);
+      } }, h('b', null, o)))));
+  }
+  /* the ghost: where your record run was at this moment */
+  const st = arcadeStats();
+  if (st.ghost.length) {
+    const el = performance.now() - A.t0;
+    const g = st.ghost.filter(x => x[0] <= el).pop();
+    A.ui.ghostEl.textContent = t('g_ghost', { n: g ? g[1] : 0 });
+    A.ui.ghostEl.classList.toggle('ahead', A.score > (g ? g[1] : 0));
+  }
+}
+function endArcade(quit) {
+  const A = ARC; if (!A || A.over) return;
+  A.over = true; A.token++; stopVoice();
+  const st = arcadeStats();
+  const record = !quit && A.score > st.best;
+  if (!quit) {
+    st.plays.push({ t: Date.now(), score: A.score, wave: A.wave });
+    if (record) { st.best = A.score; st.ghost = A.times.slice(); }
+    LOG.push({ t: Date.now(), kind: 'arcade', score: A.score, wave: A.wave, record });
+  }
+  snapshot(); save();
+  ARC = null;
+  if (quit) { document.body.classList.remove('running'); return render(); }
+  const last = st.plays.slice(-8).map(p => p.score);
+  screen(h('div', { class: 'eyebrow' + (record ? ' ok' : '') }, record ? t('g_record') : t('ar_over')),
+    h('h2', null, t('ar_title')),
+    h('div', { class: 'hero' },
+      h('div', { class: 'stat big' }, h('b', null, String(A.score)), h('span', null, t('ar_score'))),
+      h('div', { class: 'stat big' }, h('b', null, String(st.best)), h('span', null, t('g_best'))),
+      h('div', { class: 'stat big' }, h('b', null, String(A.bestCombo)), h('span', null, t('ar_combo')))),
+    h('p', { class: 'lead' }, t('ar_reached', { n: A.wave })),
+    last.length > 1 ? lineChart(last, v => String(Math.round(v))) : null,
+    A.missed.length ? h('p', { class: 'note' }, t('g_missed') + ' ' + [...new Set(A.missed)].slice(0, 8).join(', ')) : null,
+    h('div', { class: 'actions' }, btn(t('g_again'), () => startArcade()), primary(t('next'), () => { document.body.classList.remove('running'); render(); })));
+}
+function arcadeCard() {
+  const st = arcadeStats();
+  return h('div', { class: 'card' },
+    h('div', { class: 'row between' }, h('h2', null, t('ar_title')), h('span', { class: 'note' }, st.best ? t('g_best') + ': ' + st.best : t('ar_new'))),
+    h('p', { class: 'note' }, t('ar_sub')),
+    h('div', { class: 'actions' }, primary(t('ar_go'), () => startArcade())));
+}
+
 /* ============================ WEEKLY REPORT ============================ */
 function weekStart(d = new Date()) { const x = new Date(d); x.setHours(0, 0, 0, 0); const k = (x.getDay() + 6) % 7; x.setDate(x.getDate() - k); return x.getTime(); }
 function weekNumbers(from, to) {
