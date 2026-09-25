@@ -25,7 +25,9 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
 - Once an answer is right, the app moves on by itself (`autoNext` bar). Next
   stays for the impatient. Only decision screens wait.
 - Keep replies short. No em dashes. Commit to one recommendation.
-- GitHub Pages deploy only when he says it is ready. Pictures need his go
+- LIVE at https://likewaterh20.github.io/reading-lab/ since 2026-09-25
+  (Pages from `main`). Deploy = push main, after a clean sweep on 4401 and
+  a Mateo run. Never push an unswept build. Pictures need his go
   (fal, gpt-image-2 quality low, ~$0.013 each; 201 prompts in build/pic_jobs.json).
 
 ## How to work here

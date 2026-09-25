@@ -1,5 +1,13 @@
 # READING LAB: handoff
 
+**LIVE since 2026-09-25: https://likewaterh20.github.io/reading-lab/**
+(GitHub Pages from `main`, repo likewaterH20/reading-lab, `.nojekyll`).
+Deploy = commit + `git push origin main`; Pages rebuilds in about a minute.
+Check a deploy by Content-Type, not by 200: index text/html, app.js
+javascript, audio/manifest.json json, a clip audio/mpeg. HTTPS means the mic
+works on phones. The "ink and paper" stylesheet shipped with it (his "go" was
+"update the app and lets start testing for it to go up live today").
+
 Paste this into a new chat. Current as of 2026-09-24.
 Also read `CLAUDE.md` (rules, loaded automatically in this folder) and
 `RESEARCH.md` (evidence, graded honestly).
