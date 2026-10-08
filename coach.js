@@ -233,7 +233,7 @@ function markPattern(word, p) {
    end the run. You race your own record and its ghost. Every answer is real
    retrieval, so it still feeds memory (once a day per word). Adult: points,
    waves and a record, nothing else. */
-const ARC_BASE = { sound: 7000, spell: 9000, read: 14000 };
+const ARC_BASE = { sound: 7000, spell: 9000, read: 14000, say: 7000 };
 const ARC_ROUNDS = 8;
 let ARC = null;
 function arcadeStats() { P.arcade = P.arcade || { best: 0, ghost: [], plays: [] }; return P.arcade; }
@@ -245,26 +245,59 @@ function lookAlikes(word) {
   while (out.length < 3 && cands.length) { const r = cands[Math.floor(Math.random() * cands.length)].en; if (!out.includes(r)) out.push(r); }
   return [word, ...out].sort(() => Math.random() - 0.5);
 }
-/* words for the run: stumbles and the weak pattern first, then your level's words, then what you have started */
+/* THE COACH BUILDS THE RUN (his 10/7 word: "doing arcades should make you
+   better for levels and remember this is an intelligent app"):
+   words due for review today come first (a right answer in the arcade IS a
+   review), then stumbles and the weak spelling pattern, then this level's
+   words you do not own yet, then what you have started. */
 function arcadePool() {
+  const now = Date.now();
   const ok = it => it && it.kind === 'word' && !it.en.includes(' ') && it.en.length >= 3;
   const started = Object.keys(CARDS).map(k => ITEMS[k]).filter(ok);
+  const due = started.filter(it => CARDS[it.id].due <= now && today(new Date(CARDS[it.id].last)) !== today())
+    .sort((a, b) => FSRS.retrievability(CARDS[a.id], now) - FSRS.retrievability(CARDS[b.id], now)).slice(0, 30);
   const pat = topPattern();
   const focus = [...topStumbles(6), ...(pat ? started.filter(it => patternOf(it.en, pat)) : [])].filter(ok);
-  const lvl = levelItems(P.grade).map(id => ITEMS[id]).filter(it => ok(it) && !focus.includes(it)).sort(() => Math.random() - 0.5).slice(0, 12);
-  const rest = started.filter(it => !focus.includes(it) && !lvl.includes(it)).sort(() => Math.random() - 0.5);
-  let pool = [...focus.sort(() => Math.random() - 0.5), ...lvl, ...rest];
+  const lvl = levelItems(P.grade).map(id => ITEMS[id]).filter(it => ok(it) && !(CARDS[it.id] && CARDS[it.id].s >= OWNED_S)).sort(() => Math.random() - 0.5).slice(0, 12);
+  const rest = started.sort(() => Math.random() - 0.5);
+  let pool = [...due, ...focus.sort(() => Math.random() - 0.5), ...lvl, ...rest];
   if (pool.length < 24) pool = pool.concat(CONTENT.core.map(k => ITEMS[k]).filter(ok).sort(() => Math.random() - 0.5));
-  return [...new Set(pool)].slice(0, 120);
+  return [...new Set(pool)].slice(0, 160);
 }
+const canSay = () => !!(SR && !MIC.srOff && !MIC.denied);
+/* the coach picks the kinds of round: more of what you are weak at; say-it when the mic can listen; every third wave is the boss */
+function arcWaveKinds() {
+  const weak = weakest(3);
+  const w = { sound: 1, spell: 1, read: 1 };
+  if (weak.includes('spelling')) w.spell += 1.5;
+  if (weak.includes('comprehension') || weak.includes('speed')) w.read += 1;
+  if (weak.includes('pronunciation') && canSay()) w.say = 1.5; else if (canSay()) w.say = 0.6;
+  return w;
+}
+function arcPickKind(A) {
+  const w = { ...A.weights }; if (A.noSay) delete w.say;
+  if (A.lastKind && Object.keys(w).length > 1) delete w[A.lastKind];
+  const total = Object.values(w).reduce((p, q) => p + q, 0); let r = Math.random() * total;
+  for (const [k, v] of Object.entries(w)) { r -= v; if (r <= 0) return k; }
+  return Object.keys(w)[0];
+}
+const isBoss = wave => wave % 3 === 0;
+/* the boss: the passage your next reading test will use */
+function bossPassage() { return pickPassage(CONTENT.levels[P.grade - 1]); }
 function startArcade() {
   stopVoice();
   ARC = { score: 0, combo: 0, bestCombo: 0, misses: 0, wave: 1, n: 0, pool: arcadePool(), i: 0, token: 0, over: false,
-          t0: 0, wall: 0, times: [], used: new Set(), missed: [] };
+          t0: 0, wall: 0, times: [], used: new Set(), missed: [], weights: arcWaveKinds(), kinds: {}, lastKind: null,
+          cleared: 0, ownedBefore: ownedIds().length, boss: bossPassage(), bossMiss: 0, bossWon: [], noSay: false };
   arcadeScreen();
 }
-const arcKind = wave => ['sound', 'spell', 'read'][(wave - 1) % 3];
-const arcMs = (wave, kind) => Math.round(ARC_BASE[kind] * Math.pow(0.88, Math.floor((wave - 1) / 3)));
+function arcKind(wave) {
+  const A = ARC; if (!A) return 'sound';
+  if (isBoss(wave)) { A.lastKind = 'read'; return 'read'; }
+  if (!A.kinds[wave]) { A.kinds[wave] = arcPickKind(A); A.lastKind = A.kinds[wave]; }
+  return A.kinds[wave];
+}
+const arcMs = (wave, kind) => Math.round((ARC_BASE[kind] || 8000) * Math.pow(0.88, Math.floor((wave - 1) / 3)));
 function arcadeScreen() {
   const A = ARC, st = arcadeStats();
   document.body.classList.add('running');
@@ -282,9 +315,13 @@ function arcadeScreen() {
       ghostEl),
     host));
   A.ui = { host, waveEl, timeBar, scoreEl, comboEl, missEl, ghostEl };
-  mount(host, h('h2', null, t('ar_title')), h('p', { class: 'lead' }, t('ar_sub')),
+  mount(host, h('h2', null, t('ar_title')), h('p', { class: 'lead' }, t('ar_sub')), h('p', { class: 'note' }, t('ar_pays')),
     h('p', { class: 'note' }, st.best ? t('g_best') + ': ' + st.best : t('ar_new')),
-    h('div', { class: 'actions' }, primary(t('ar_go'), () => { A.t0 = performance.now(); A.wall = Date.now(); arcadeRound(); })));
+    h('div', { class: 'actions' }, primary(t('ar_go'), () => {
+      A.t0 = performance.now(); A.wall = Date.now();
+      if (A.weights.say) EAR.start();   // the ear opens now, so it is already listening when a say-it word appears
+      arcadeRound();
+    })));
 }
 function arcRight(it, kind) {
   const A = ARC;
@@ -292,54 +329,74 @@ function arcRight(it, kind) {
   A.score += 10 * A.wave + A.combo;
   A.times.push([performance.now() - A.t0, A.score]);
   A.ui.scoreEl.textContent = String(A.score); A.ui.comboEl.textContent = String(A.combo);
-  arcGrade(it, 3, kind);
+  if (arcGrade(it, 3, kind)) A.cleared++;
 }
 function arcMiss(it, kind, typed) {
   const A = ARC;
   A.combo = 0; A.misses++; if (it) A.missed.push(it.en);
+  if (isBoss(A.wave)) A.bossMiss++;
   A.ui.comboEl.textContent = '0'; A.ui.missEl.textContent = String(A.misses);
   if (it) arcGrade(it, 1, kind, typed);
 }
-/* a round is real retrieval, so it updates memory, once a day per word */
+/* a round is real retrieval, so it updates memory, once a day per word. Returns true when it cleared a due review. */
 function arcGrade(it, g, kind, typed) {
-  if (!it || !it.id) return;
-  const c = CARDS[it.id];
-  const extra = { t: Date.now(), id: it.id, g, ph: 'arcade:' + kind, w: kind === 'spell' ? 1 : undefined };
+  if (!it || !it.id) return false;
+  const c = CARDS[it.id], now = Date.now();
+  const wasDue = !!(c && c.due <= now && today(new Date(c.last)) !== today());
+  const extra = { t: now, id: it.id, g, ph: 'arcade:' + kind, w: kind === 'spell' ? 1 : undefined };
   if (typed != null && kind === 'spell') extra.pat = spellPatterns(it.en, typed);
   LOG.push(extra);
   if (!c) CARDS[it.id] = FSRS.rate(null, g);
   else if (today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, g);
+  return wasDue && g >= 3;
 }
 function arcadeRound() {
   const A = ARC; if (!A || A.over) return;
-  if (A.n >= ARC_ROUNDS) { A.n = 0; A.wave++; A.ui.waveEl.textContent = t('ar_wave', { n: A.wave }); }
+  if (A.n >= ARC_ROUNDS) {
+    /* a boss wave is won with at most one miss: a bonus, and the test will feel familiar */
+    if (isBoss(A.wave) && A.bossMiss <= 1) { A.score += 50; A.bossWon.push(A.boss.title); LOG.push({ t: Date.now(), kind: 'boss', pid: A.boss.id, wave: A.wave }); A.ui.scoreEl.textContent = String(A.score); }
+    A.n = 0; A.wave++; A.bossMiss = 0;
+    A.ui.waveEl.textContent = isBoss(A.wave) ? t('ar_boss', { t: A.boss.title }) : t('ar_wave', { n: A.wave });
+  }
   A.n++;
   const kind = arcKind(A.wave), ms = arcMs(A.wave, kind);
   const my = ++A.token, host = A.ui.host;
   let it = null, item = null;
-  if (kind === 'read') { item = mazeItem(P.grade, A.used) || mazeItem(Math.max(1, P.grade - 1), A.used); if (!item) { A.n = ARC_ROUNDS; return arcadeRound(); } }
-  else it = A.pool[A.i++ % A.pool.length];
+  if (kind === 'read') {
+    item = (isBoss(A.wave) && mazeFromPassages([A.boss], P.grade, A.used)) || mazeItem(P.grade, A.used) || mazeItem(Math.max(1, P.grade - 1), A.used);
+    if (!item) { A.n = ARC_ROUNDS; return arcadeRound(); }
+  } else it = A.pool[A.i++ % A.pool.length];
   /* the clock for this round */
   const bar = A.ui.timeBar.firstChild; bar.style.transition = 'none'; bar.style.width = '100%';
   requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = `width ${ms}ms linear`; bar.style.width = '0%'; }));
   const after = (fn, delay) => setTimeout(() => { if (ARC === A && !A.over) fn(); }, delay);
+  let ear = null;
   const timeout = setTimeout(() => {
     if (A.token !== my || A.over) return;
-    A.token++; arcMiss(it, kind);
+    A.token++; if (ear) ear.cancel(); arcMiss(it, kind);
     mount(host, h('div', { class: 'eyebrow' }, t('ar_time')), it ? wordBlock(it, true, false) : h('p', { class: 'sentence' }, item.before + ' ' + item.word + item.after));
     if (A.misses >= 3) return after(() => endArcade(false), 900);
     after(arcadeRound, 900);
   }, ms);
   const settle = (ok, typed) => {
     if (A.token !== my || A.over) return;
-    A.token++; clearTimeout(timeout);
+    A.token++; clearTimeout(timeout); if (ear) ear.cancel();
     if (ok) { arcRight(it || { en: item.word }, kind); return after(arcadeRound, ok && kind === 'spell' ? 350 : 250); }
     arcMiss(it, kind, typed);
     if (A.misses >= 3) return after(() => endArcade(false), 1000);
     after(arcadeRound, 900);
   };
-  const label = h('div', { class: 'eyebrow' }, t(kind === 'sound' ? 'g_k_sound' : kind === 'spell' ? 'g_k_spell' : 'place_q'));
-  if (kind === 'spell') {
+  const label = h('div', { class: 'eyebrow' }, t(kind === 'sound' ? 'g_k_sound' : kind === 'spell' ? 'g_k_spell' : kind === 'say' ? 'g_k_say' : 'place_q'));
+  if (kind === 'say') {
+    /* the ear is already open; the round ends the moment the word is heard, or as a miss on a clear non-match */
+    const status = h('p', { class: 'note' }, t('g_say_now'));
+    ear = EAR.listen(it.en, (ok, heard) => {
+      if (A.token !== my || A.over) return;
+      if (!ok) status.textContent = heard ? t('heard', { w: heard }) : t('g_say_miss');
+      settle(ok);
+    }, () => { if (A.token !== my || A.over) return; A.noSay = true; A.kinds[A.wave] = 'sound'; A.token++; clearTimeout(timeout); after(arcadeRound, 50); });
+    mount(host, label, wordBlock(it, true, false), status, h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost')));
+  } else if (kind === 'spell') {
     const inp = input(v => {
       if (!v.trim()) return;
       if (isRight(v, it.en)) settle(true);
@@ -371,18 +428,19 @@ function arcadeRound() {
 }
 function endArcade(quit) {
   const A = ARC; if (!A || A.over) return;
-  A.over = true; A.token++; stopVoice();
+  A.over = true; A.token++; stopVoice(); EAR.stop();
   const st = arcadeStats();
   const record = !quit && A.score > st.best;
   if (!quit) {
     st.plays.push({ t: Date.now(), score: A.score, wave: A.wave });
     if (record) { st.best = A.score; st.ghost = A.times.slice(); }
-    LOG.push({ t: Date.now(), kind: 'arcade', score: A.score, wave: A.wave, record });
+    LOG.push({ t: Date.now(), kind: 'arcade', score: A.score, wave: A.wave, record, cleared: A.cleared, boss: A.bossWon.length });
   }
   snapshot(); save();
   ARC = null;
   if (quit) { document.body.classList.remove('running'); return render(); }
   const last = st.plays.slice(-8).map(p => p.score);
+  const ownGain = ownedIds().length - A.ownedBefore;
   screen(h('div', { class: 'eyebrow' + (record ? ' ok' : '') }, record ? t('g_record') : t('ar_over')),
     h('h2', null, t('ar_title')),
     h('div', { class: 'hero' },
@@ -390,6 +448,10 @@ function endArcade(quit) {
       h('div', { class: 'stat big' }, h('b', null, String(st.best)), h('span', null, t('g_best'))),
       h('div', { class: 'stat big' }, h('b', null, String(A.bestCombo)), h('span', null, t('ar_combo')))),
     h('p', { class: 'lead' }, t('ar_reached', { n: A.wave })),
+    /* what this run paid into your levels */
+    A.cleared ? h('p', { class: 'lead opened' }, t('ar_cleared', { n: A.cleared })) : null,
+    A.bossWon.length ? h('p', { class: 'lead opened' }, t('ar_boss_win', { t: A.bossWon[A.bossWon.length - 1] })) : null,
+    ownGain > 0 ? h('p', { class: 'note' }, '+' + ownGain + ' ' + t('owned')) : null,
     last.length > 1 ? lineChart(last, v => String(Math.round(v))) : null,
     A.missed.length ? h('p', { class: 'note' }, t('g_missed') + ' ' + [...new Set(A.missed)].slice(0, 8).join(', ')) : null,
     h('div', { class: 'actions' }, btn(t('g_again'), () => startArcade()), primary(t('next'), () => { document.body.classList.remove('running'); render(); })));

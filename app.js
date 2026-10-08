@@ -197,8 +197,10 @@ function finishOnboarding() {
    eight sentences, so it homes in on where reading starts to break. */
 const shuffle = a => a.slice().sort(() => Math.random() - 0.5);
 function mazeItem(g, usedSentences) {
-  const L = CONTENT.levels[g - 1];
-  const sents = L.passages.flatMap(p => p.text.split(/(?<=[.!?])\s+/)).filter(s => { const n = s.split(' ').length; return n >= 8 && n <= 24 && !usedSentences.has(s); });
+  return mazeFromPassages(CONTENT.levels[g - 1].passages, g, usedSentences);
+}
+function mazeFromPassages(passages, g, usedSentences) {
+  const sents = passages.flatMap(p => p.text.split(/(?<=[.!?])\s+/)).filter(s => { const n = s.split(' ').length; return n >= 8 && n <= 24 && !usedSentences.has(s); });
   for (const s of shuffle(sents)) {
     const ws = s.split(' ');
     const idx = ws.map((w, i) => i).filter(i => i > 0 && /^[a-z]{4,}[.,!?;:]?$/.test(ws[i]));

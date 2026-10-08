@@ -218,6 +218,8 @@ const EAR = {
       MIC.srOff = true; const c = self.cur; self.stop(); if (c && c.onOff) c.onOff();
     };
     r.onend = () => { if (self.r !== r) return; self.r = null; self.seen = 0; if (self.cur) self.cur.from = 0; if (self.want) self._open(); };
+    /* a new recogniser counts its results from zero */
+    self.seen = 0; if (self.cur) self.cur.from = 0;
     self.r = r; try { r.start(); } catch {}
   },
   /* wait for one word or phrase; cb(ok, heard) once, then the ear idles until the next listen */
@@ -254,7 +256,7 @@ const EAR = {
     return { cancel: () => { if (this.ver === my) { this.ver++; this.cur = null; if (vad) vad(); } } };
   },
   stop() {
-    this.want = false; this.cur = null; this.ver++;
+    this.want = false; this.cur = null; this.ver++; this.seen = 0;
     const r = this.r; this.r = null;
     if (r) { try { r.onend = null; r.stop(); } catch {} }
   },
