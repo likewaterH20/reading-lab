@@ -50,11 +50,23 @@ this level's words + use-it + the reading test, via buildSession; older
 levels replay their own words via startLevel) with the daily read as a row
 inside it, then the ARCADE card. Stats live in Progress.
 
-**Arcade** (coach.js): waves of 8 rounds, kinds cycle hear-and-pick,
-hear-and-type, read-and-fill (maze from your level); each 3 waves 12%
-faster; combo adds points; 3 misses end the run; personal record + ghost
-(`P.arcade`); every answer feeds FSRS once a day per word (LOG ph
-`arcade:kind`, kind `arcade` on run end). Adult: points, waves, record only.
+**Arcade** (coach.js), upgraded 2026-10-07 at his word ("doing arcades
+should make you better for levels and remember this is an intelligent app"):
+- the coach builds the run: words DUE today first (a right answer is a
+  review, counted as `cleared`), then stumbles + the weak pattern, then this
+  level's unowned words, then started words (`arcadePool`);
+- the coach picks round kinds by weakness (`arcWaveKinds`): weak spelling =
+  more type-it, weak comprehension/speed = more read-and-fill, say-it rounds
+  through `EAR` when the mic can listen (weight up if pronunciation is weak);
+  never the same kind two waves running;
+- every third wave is the BOSS: read-and-fill from the passage your next
+  reading test will use (`pickPassage` of your level); at most one miss in
+  the wave wins it (+50, LOG kind `boss`);
+- end screen says what the run paid: "{n} reviews cleared", "Boss beaten:
+  {title}", "+k words owned";
+- waves of 8, 12% faster every 3 waves, combo points, 3 misses end the run,
+  record + ghost (`P.arcade`). LOG `arcade` now carries `cleared` and `boss`.
+Adult: points, waves, record only.
 
 **His rules from 2026-09-24, verbatim:** "This app needs to be user-friendly
 super extremely minimal but effective." "We need built-in automation like move

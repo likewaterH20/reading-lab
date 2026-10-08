@@ -22,6 +22,9 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
   type of fun arcade style of word and reading game" and the Daily card went
   away ("dailies and levels are pretty much the same"): home = level card +
   Arcade card. Arcade = waves, combo, 3 misses, record + ghost. Still adult.
+  10/7: the arcade must PAY the level (due words first = reviews cleared,
+  coach-weighted kinds, boss wave from the next test's passage). Any arcade
+  change: keep that loop visible on the end screen.
 - Play opens levels: own 75% of your level's words and the next opens at the
   end of the session (`openByPractice`). The coach steps in on the end screen
   when two misses in a session share a spelling pattern (`runStruggle`).
