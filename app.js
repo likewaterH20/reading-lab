@@ -59,7 +59,10 @@ function render() {
   mount(nav, P && !inRun ? [
     ['today', 'tab_today'], ['words', 'tab_words'], ['progress', 'tab_progress']
   ].map(([id, key]) => h('button', { class: 'tab' + (TAB === id ? ' on' : ''), onclick: () => { TAB = id; render(); } }, t(key))) : null);
+  /* sound off (a muted test URL or the Profile toggle) is shown, never silent: one tap turns it back on */
+  const soundIsOff = MUTED() || store.get('soundOff', false);
   mount($('#meta'), P && !inRun ? [
+    soundIsOff ? h('button', { class: 'ghost small warn', onclick: () => { try { localStorage.removeItem('rl.mute'); } catch {} store.set('soundOff', false); if (VOICE.el) VOICE.el.muted = false; render(); say('en', 'Sound is on.'); } }, t('sound_off_pill')) : null,
     h('span', { class: 'day' }, t('day') + ' ' + dayNumber() + ' · ' + gradeName(P.grade)),
     h('button', { class: 'ghost small pf', onclick: openProfile, 'aria-label': t('profile') },
       s('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' },

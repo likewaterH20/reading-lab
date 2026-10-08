@@ -167,6 +167,7 @@ UI = {
  "g_ghost":     {"en": "Your record run: {n} by now", "es": "Tu récord iba en {n} a esta altura"},
  "g_say_now":   {"en": "Say it now.", "es": "Dila ahora."},
  "g_say_miss":  {"en": "Did not catch it. Next.", "es": "No se escuchó. Siguiente."},
+ "sound_off_pill": {"en": "Sound is off · turn on", "es": "Sin sonido · activar"},
  "ar_title":    {"en": "Arcade", "es": "Arcade"},
  "ar_sub":      {"en": "Waves of words, faster every wave. Three misses and the run is over.", "es": "Oleadas de palabras, cada vez más rápido. Tres fallos y se acaba."},
  "ar_go":       {"en": "Play", "es": "Jugar"},
