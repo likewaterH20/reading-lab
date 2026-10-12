@@ -50,6 +50,23 @@ this level's words + use-it + the reading test, via buildSession; older
 levels replay their own words via startLevel) with the daily read as a row
 inside it, then the ARCADE card. Stats live in Progress.
 
+**The Sounds of English** (sounds.js, 2026-10-12, his ask: "the pronunciation
+is the intro of reading... use the video how we made the learning arabic
+webapp"): EnglishAnyone's 12 phonics videos (2011, 2-6 min each), watched in
+order from a home card that sits first until all 12 are done. The video stays
+on YouTube (IFrame API, nocookie host, controls hidden behind a poster and a
+tap shield, our own track and controls). A live card follows the timeline
+(`blocks` with `t`/`end`; lesson 1 authored from the official captions, with
+26 alphabet letters and the 5 short vowels highlighted in time, approximate),
+coach pauses after a repeat-after-me block (say it, then hear the app say
+real words: short vowels from the starter groups, hard/soft c and g from the
+library). After the video, "Finish, do the words" runs the item flow on 6
+library words that carry the lesson's `pattern` (regex in
+`build/sounds_course.py`, `EXCEPT` list for rule-breakers), so the drill
+feeds memory. Progress `P.sounds = {done, pos}`, LOG kind `sound`. Lessons
+2-12 have no blocks yet (chapters/captions fetched in the scratchpad, to be
+authored). The pane cannot play YouTube: test by driving `SOUND.onTime(s)`.
+
 **Arcade** (coach.js), upgraded 2026-10-07 at his word ("doing arcades
 should make you better for levels and remember this is an intelligent app"):
 - the coach builds the run: words DUE today first (a right answer is a
