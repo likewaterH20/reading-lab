@@ -416,8 +416,11 @@ function todayScreen() {
     : [t('due_n', { n: pv.due }), t('new_n', { n: pv.fresh }), canRead() ? t('rd_title') : null].filter(Boolean).join(' · ') + ' · ' + t('daily_len');
   screen(
     weekCard,
+    /* the Sounds of English video course sits first until all 12 are done, then last */
+    soundsDone() ? null : soundsCard(),
     levelCard({ plan, q: nothing ? null : pv.q, more: doneToday }),
-    arcadeCard());
+    arcadeCard(),
+    soundsDone() ? soundsCard() : null);
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;
@@ -1148,6 +1151,16 @@ async function introCard(host, e) {
     for (const p of pairs.slice(0, 3)) {
       if (!alive(my)) return; await say('es', p.es); if (!alive(my)) return; await wait(200); if (!alive(my)) return; await say('en', p.en); await wait(300); if (!alive(my)) return;
     }
+  } else if (e.intro === 'soundwords') {
+    /* after a Sounds of English video: the lesson's pattern, on real words */
+    const L = CONTENT.sounds.find(x => x.n === e.key);
+    const ids = RUN.q.filter(x => x.id).map(x => ITEMS[x.id]).filter(Boolean);
+    mount(host, h('div', { class: 'eyebrow' }, t('so_lesson', { n: L.n })),
+      h('h2', null, P.lang === 'es' ? L.es : L.title),
+      h('p', { class: 'lead' }, t('so_words', { p: L.pattern_name[P.lang] || L.pattern_name.en })),
+      h('div', { class: 'tiles', translate: 'no', lang: 'en' }, ids.map(w => h('button', { class: 'linkish', onclick: () => say('en', w.en) }, w.en))),
+      h('div', { class: 'actions' }, nb));
+    for (const w of ids.slice(0, 3)) { if (!alive(my)) return; await say('en', w.en); await wait(250); }
   } else if (e.intro === 'fix') {
     /* the coach steps in after a game: the pattern you missed, on the words you missed */
     const words = (e.ids || []).map(id => ITEMS[id]).filter(Boolean);

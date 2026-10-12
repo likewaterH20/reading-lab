@@ -279,7 +279,19 @@ for sid, row in U.UI.items():
 if fails:
     print("FAILED %d checks:" % len(fails)); [print("  -", f) for f in fails]; sys.exit(1)
 
-content = {"items": items, "levels": levels, "daily": daily, "facts": [f["id"] for f in facts],
+# ---------------- the Sounds of English video course ----------------
+import sounds_course as SC
+check(len(SC.LESSONS) == 12, "want 12 sound lessons, have %d" % len(SC.LESSONS))
+single_words = [it for it in items if it["kind"] == "word" and " " not in it["en"] and it["en"].islower() and it["en"] not in SC.EXCEPT]
+for L in SC.LESSONS:
+    rx = re.compile(L["pattern"])
+    hits = [it for it in single_words if rx.search(it["en"])]
+    check(len(hits) >= 8, "sound lesson %d (%s) matches only %d library words" % (L["n"], L["title"], len(hits)))
+    for b in L.get("blocks", []):
+        check(b["t"] < b["end"] <= L["duration"], "sound lesson %d block at %s has bad times" % (L["n"], b["t"]))
+sounds = [{k: v for k, v in L.items()} for L in SC.LESSONS]
+
+content = {"items": items, "levels": levels, "daily": daily, "facts": [f["id"] for f in facts], "sounds": sounds, "soundsChannel": SC.CHANNEL_URL, "soundsExcept": sorted(SC.EXCEPT),
            "topics": [{"id": t[0], "en": t[1], "es": t[2]} for t in C.LIFE_TOPICS], "starter": starter, "industries": industries, "core": core_ids,
            "shortcuts": shortcuts, "traps": traps, "sentences": sentences, "ui": U.UI,
            "spoken": sorted(U.SPOKEN),

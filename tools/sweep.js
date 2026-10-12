@@ -39,6 +39,11 @@ window.__log = []; window.__done = false;
       if (ARC) { ARC.misses = 3; endArcade(false); }
       if (!document.querySelector('.hero')) log.push('NO END ' + tag + ' arcade'); } catch (e) { log.push('THROW ' + tag + ' arcade: ' + e.message); }
     ARC = null; RUN = null; P.weekSeen = null;
+    /* the Sounds of English lesson screen (DOM only, the video is never played here) and its after-video words */
+    try { startSoundLesson(1); n++; await sleep(150); if (!document.querySelector('.vbox')) log.push('NO VIDEO BOX ' + tag + ' sounds');
+      leaveSoundLesson(); RUN = null; startRun([{ intro: 'soundwords', key: 1 }, { id: soundLessonWords(CONTENT.sounds[0])[0], mode: 'new' }]); n++; await sleep(120); stopVoice();
+      if (!document.querySelector('.stage')) log.push('NO STAGE ' + tag + ' soundwords'); } catch (e) { log.push('THROW ' + tag + ' sounds: ' + e.message); }
+    SOUND = null; RUN = null;
     for (const tab of ['today','words','progress']) { try { TAB = tab; RUN = null; render(); n++; } catch (e) { log.push('THROW ' + tag + ' tab ' + tab + ': ' + e.message); } }
     const bad = document.body.textContent.includes('[object') || document.body.textContent.includes('undefined');
     log.push(tag + ' screens ' + n + (bad ? ' | STRAY TEXT ([object / undefined) on page' : ''));
