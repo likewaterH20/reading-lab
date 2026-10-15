@@ -50,6 +50,19 @@ this level's words + use-it + the reading test, via buildSession; older
 levels replay their own words via startLevel) with the daily read as a row
 inside it, then the ARCADE card. Stats live in Progress.
 
+**10/15, his word: "get rid of arcade we dont need that lets just focus on
+the videos and use the underneath area for more tips and repition advice like
+the arabic app" and "make this app super minimal and easy for anyone to start
+learning. this app needs to be super intelligent and fun to go through."**
+Arcade REMOVED (code gone from coach.js, in git before 10/15). Home = Sounds
+card + level card. Under the video: the Now card, "In this lesson" (every
+block, tap to jump, the current one marked), the Spanish-speaker tip, and
+"How to practise" (four lines: say everything out loud, loop a hard block
+three times, do the words right after, the app brings the lesson back).
+Spaced rewatch ladder 3 / 7 / 21 days (`P.sounds.last`, `P.sounds.reps`,
+`soundsDue()`): the card shows "Rewatch lesson n: due today" or "comes back
+in d days".
+
 **10/14, his word: "we have to start there... make it like two tiers of
 speed... start it going a little faster... everything has to be super
 intelligent... so people could start building their confidence in reading,

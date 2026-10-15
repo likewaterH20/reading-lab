@@ -418,11 +418,9 @@ function todayScreen() {
     : [t('due_n', { n: pv.due }), t('new_n', { n: pv.fresh }), canRead() ? t('rd_title') : null].filter(Boolean).join(' · ') + ' · ' + t('daily_len');
   screen(
     weekCard,
-    /* the Sounds of English video course sits first until all 12 are done, then last */
-    soundsDone() ? null : soundsCard(),
-    levelCard({ plan, q: nothing ? null : pv.q, more: doneToday }),
-    arcadeCard(),
-    soundsDone() ? soundsCard() : null);
+    /* the Sounds of English video course comes first; the arcade was removed at his word (10/15) */
+    soundsCard(),
+    levelCard({ plan, q: nothing ? null : pv.q, more: doneToday }));
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;

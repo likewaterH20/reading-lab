@@ -6,10 +6,19 @@
    before moving on, and after the video the app drills real words from the
    library that carry the lesson's pattern (the proven item flow, so it feeds
    memory). Progress: P.sounds = { done: [n...], pos: { n: seconds } }. */
-function soundsState() { P.sounds = P.sounds || { done: [], pos: {}, score: {} }; P.sounds.score = P.sounds.score || {}; return P.sounds; }
+function soundsState() { P.sounds = P.sounds || { done: [], pos: {}, score: {} }; P.sounds.score = P.sounds.score || {}; P.sounds.last = P.sounds.last || {}; P.sounds.reps = P.sounds.reps || {}; return P.sounds; }
 const soundsDone = () => P && soundsState().done.length >= CONTENT.sounds.length;
 const SOUND_PASS = 80;   // a lesson is mastered when this share of its words comes out right
 const soundMastered = n => (soundsState().score[n] || 0) >= SOUND_PASS;
+const canSay = () => !!(SR && !MIC.srOff && !MIC.denied);
+/* spaced rewatches, the Arabic app's ladder: 3, 7, then 21 days after each watch of a finished lesson */
+const SOUND_LADDER = [3, 7, 21];
+function soundsDue() {
+  const st = soundsState(), now = Date.now();
+  return CONTENT.sounds.filter(L => st.done.includes(L.n) && st.last[L.n])
+    .map(L => { const gap = SOUND_LADDER[Math.min(st.reps[L.n] || 0, SOUND_LADDER.length - 1)]; return { L, days: Math.round((st.last[L.n] + gap * 864e5 - now) / 864e5) }; })
+    .sort((a, b) => a.days - b.days);
+}
 /* the next lesson: the first one not finished; a finished lesson whose words were not mastered is offered for review first */
 function nextSoundLesson() {
   const st = soundsState();
@@ -21,6 +30,8 @@ function soundsCard() {
   const last = st.done.length ? CONTENT.sounds.find(x => x.n === st.done[st.done.length - 1]) : null;
   const needsReview = last && !soundMastered(last.n) && last.n < L.n;
   const rate = P.soundsRate || 1.25;
+  const due = soundsDue().filter(d => d.days <= 0 && d.L.n !== L.n)[0];
+  const soon = !due && soundsDue().filter(d => d.days > 0)[0];
   return h('div', { class: 'card' },
     h('div', { class: 'row between' }, h('h2', null, t('so_title')), h('span', { class: 'note' }, all ? t('so_all_done') : st.done.length ? t('so_done_n', { a: st.done.length }) : t('so_start_here'))),
     h('p', { class: 'lead' }, t('so_lesson', { n: L.n }) + ' · ' + (P.lang === 'es' ? L.es : L.title)),
@@ -29,7 +40,10 @@ function soundsCard() {
       h('span', { class: 'note' }, Math.round(L.duration / 60 / rate) + ' min · ' + rate + '×'),
       needsReview
         ? h('span', { class: 'row' }, btn(t('so_anyway', { n: L.n }), () => startSoundLesson(L.n), 'ghost'), primary(t('so_rewatch', { n: last.n }), () => startSoundLesson(last.n)))
-        : primary(t('so_watch', { n: L.n }), () => startSoundLesson(L.n))));
+        : primary(all ? t('so_rewatch', { n: L.n }) : t('so_watch', { n: L.n }), () => startSoundLesson(L.n))),
+    /* the spaced rewatch: a finished lesson comes back on the ladder */
+    due ? h('div', { class: 'row between dr-row' }, h('span', { class: 'note' }, t('so_due', { n: due.L.n })), btn(t('so_rewatch', { n: due.L.n }), () => startSoundLesson(due.L.n), 'ghost small'))
+      : soon ? h('p', { class: 'note' }, t('so_next_in', { n: soon.L.n, d: soon.days })) : null);
 }
 /* words from the library that carry this lesson's pattern: the drill after the video */
 const SOUND_EXCEPT = new Set(CONTENT.soundsExcept || []);
@@ -94,16 +108,27 @@ function soundLessonScreen() {
   const live = h('div', { class: 'card' });
   const coachEl = h('div', { class: 'coachbox', hidden: true });
   const finish = primary(t('so_finish'), () => finishSoundLesson());
+  /* under the video, the learning layer (his word: "use the underneath area for more tips and
+     repetition advice like the arabic app"): what is happening now, the lesson's blocks to tap
+     and loop, the Spanish-speaker tip, and how to practise */
+  const blockRows = h('div', { class: 'list' }, blocks.map(b => { const row = h('button', { class: 'wrow', onclick: () => { seek(b.t); S.yt.playVideo(); } },
+    h('span', { class: 'd' }, fmtTime(b.t)), h('span', { class: 'g' }, P.lang === 'es' ? b.es : b.en)); row._block = b; return row; }));
+  const blocksCard = blocks.length ? h('div', { class: 'card' }, h('div', { class: 'eyebrow' }, t('so_blocks')), blockRows) : null;
+  const tipsCard = h('div', { class: 'card' },
+    L.tip ? [h('div', { class: 'eyebrow' }, t('so_tip')), h('p', { class: 'lead' }, P.lang === 'es' ? L.tip.es : L.tip.en)] : null,
+    h('div', { class: 'eyebrow' }, t('so_how')),
+    ['so_rep1', 'so_rep2', 'so_rep3', 'so_rep4'].map(k => h('p', { class: 'note focus' }, t(k))));
   mount(APP(), h('section', { class: 'screen run' },
     h('div', { class: 'runbar' }, h('span', { class: 'eyebrow' }, t('so_lesson', { n: L.n })), h('span', { style: 'flex:1' }), h('button', { class: 'ghost small', onclick: () => leaveSoundLesson(), 'aria-label': t('close_x') }, t('close_x'))),
     h('h2', null, P.lang === 'es' ? L.es : L.title),
-    L.tip ? h('p', { class: 'note focus' }, (P.lang === 'es' ? L.tip.es : L.tip.en)) : null,
     box, track,
     h('div', { class: 'vctl' }, playBtn, btn('−5 s', () => seek(time() - 5), 'ghost small'), btn('+5 s', () => seek(time() + 5), 'ghost small'), rateN, rateF, loopBtn, coachBtn, timeEl),
     live, coachEl,
-    h('div', { class: 'actions' }, finish)));
+    h('div', { class: 'actions' }, finish),
+    blocksCard, tipsCard));
+  S.ui = { blockRows };
   setRate(P.soundsRate || RATES.normal);
-  S.ui = { box, fill, timeEl, playBtn, loopBtn, live, coachEl };
+  Object.assign(S.ui, { box, fill, timeEl, playBtn, loopBtn, live, coachEl });
   renderLive(null);
   const dur = () => (S.ready && S.yt.getDuration()) || L.duration;
   const time = () => S.ready ? S.yt.getCurrentTime() : 0;
@@ -125,7 +150,7 @@ function soundLessonScreen() {
     if (Math.floor(s) % 5 === 0) { st.pos[L.n] = Math.max(st.pos[L.n] || 0, s); save(); }
     if (S.loop && s >= S.loop.b) S.yt.seekTo(S.loop.a, true);
     let cur = null; for (const b of blocks) { if (b.t <= s) cur = b; else break; }
-    if (cur !== S.cur) { S.cur = cur; renderLive(cur); }
+    if (cur !== S.cur) { S.cur = cur; renderLive(cur); for (const row of S.ui.blockRows.children) row.classList.toggle('now', row._block === cur); }
     if (cur && cur.marks) litMark(cur, s);
     /* the coach: a "repeat after me" block just ended, so you say it before the lesson moves on */
     if (S.coach && cur && cur.coach && s >= cur.end - 0.4 && S.coachFor !== cur && !S.loop) { S.coachFor = cur; S.yt.pauseVideo(); showCoach(cur); }
@@ -205,6 +230,9 @@ function finishSoundLesson() {
   const L = S.L, st = soundsState();
   if (!st.done.includes(L.n)) st.done.push(L.n);
   st.pos[L.n] = 0;
+  /* the rewatch ladder: this watch counts, the next one is due in 3, 7, then 21 days */
+  if (st.last[L.n]) st.reps[L.n] = (st.reps[L.n] || 0) + 1;
+  st.last[L.n] = Date.now();
   LOG.push({ t: Date.now(), kind: 'sound', n: L.n });
   snapshot(); save();
   clearInterval(S.timer); try { S.yt && S.yt.destroy(); } catch {}
