@@ -6,8 +6,11 @@
    before moving on, and after the video the app drills real words from the
    library that carry the lesson's pattern (the proven item flow, so it feeds
    memory). Progress: P.sounds = { done: [n...], pos: { n: seconds } }. */
-function soundsState() { P.sounds = P.sounds || { done: [], pos: {} }; return P.sounds; }
+function soundsState() { P.sounds = P.sounds || { done: [], pos: {}, score: {} }; P.sounds.score = P.sounds.score || {}; return P.sounds; }
 const soundsDone = () => P && soundsState().done.length >= CONTENT.sounds.length;
+const SOUND_PASS = 80;   // a lesson is mastered when this share of its words comes out right
+const soundMastered = n => (soundsState().score[n] || 0) >= SOUND_PASS;
+/* the next lesson: the first one not finished; a finished lesson whose words were not mastered is offered for review first */
 function nextSoundLesson() {
   const st = soundsState();
   return CONTENT.sounds.find(L => !st.done.includes(L.n)) || CONTENT.sounds[0];
@@ -15,12 +18,18 @@ function nextSoundLesson() {
 function soundsCard() {
   const st = soundsState(), L = nextSoundLesson();
   const all = soundsDone();
+  const last = st.done.length ? CONTENT.sounds.find(x => x.n === st.done[st.done.length - 1]) : null;
+  const needsReview = last && !soundMastered(last.n) && last.n < L.n;
+  const rate = P.soundsRate || 1.25;
   return h('div', { class: 'card' },
-    h('div', { class: 'row between' }, h('h2', null, t('so_title')), h('span', { class: 'note' }, all ? t('so_all_done') : st.done.length ? t('so_done_n', { a: st.done.length }) : t('so_sub'))),
+    h('div', { class: 'row between' }, h('h2', null, t('so_title')), h('span', { class: 'note' }, all ? t('so_all_done') : st.done.length ? t('so_done_n', { a: st.done.length }) : t('so_start_here'))),
     h('p', { class: 'lead' }, t('so_lesson', { n: L.n }) + ' · ' + (P.lang === 'es' ? L.es : L.title)),
+    needsReview ? h('p', { class: 'note' }, t('so_review', { n: last.n, p: st.score[last.n] || 0 })) : null,
     h('div', { class: 'row between' },
-      h('span', { class: 'note' }, Math.round(L.duration / 60) + ' min'),
-      primary(t('so_watch', { n: L.n }), () => startSoundLesson(L.n))));
+      h('span', { class: 'note' }, Math.round(L.duration / 60 / rate) + ' min · ' + rate + '×'),
+      needsReview
+        ? h('span', { class: 'row' }, btn(t('so_anyway', { n: L.n }), () => startSoundLesson(L.n), 'ghost'), primary(t('so_rewatch', { n: last.n }), () => startSoundLesson(last.n)))
+        : primary(t('so_watch', { n: L.n }), () => startSoundLesson(L.n))));
 }
 /* words from the library that carry this lesson's pattern: the drill after the video */
 const SOUND_EXCEPT = new Set(CONTENT.soundsExcept || []);
@@ -77,16 +86,23 @@ function soundLessonScreen() {
   const playBtn = btn(t('so_play'), () => toggle(), 'ghost');
   const loopBtn = btn(t('so_loop'), () => toggleLoop(), 'ghost');
   const coachBtn = btn(t('so_coach_on'), () => { S.coach = !S.coach; coachBtn.classList.toggle('primary', S.coach); }, 'ghost' + (S.coach ? ' primary' : ''));
+  /* two speeds, and the lesson starts at the faster-than-normal one (his word: "this video is a little slow") */
+  const RATES = { normal: 1.25, fast: 1.5 };
+  const setRate = r => { P.soundsRate = r; save(); if (S.ready) S.yt.setPlaybackRate(r); rateN.classList.toggle('primary', r === RATES.normal); rateF.classList.toggle('primary', r === RATES.fast); };
+  const rateN = btn(t('so_speed_n'), () => setRate(RATES.normal), 'ghost small');
+  const rateF = btn(t('so_speed_f'), () => setRate(RATES.fast), 'ghost small');
   const live = h('div', { class: 'card' });
   const coachEl = h('div', { class: 'coachbox', hidden: true });
   const finish = primary(t('so_finish'), () => finishSoundLesson());
   mount(APP(), h('section', { class: 'screen run' },
     h('div', { class: 'runbar' }, h('span', { class: 'eyebrow' }, t('so_lesson', { n: L.n })), h('span', { style: 'flex:1' }), h('button', { class: 'ghost small', onclick: () => leaveSoundLesson(), 'aria-label': t('close_x') }, t('close_x'))),
     h('h2', null, P.lang === 'es' ? L.es : L.title),
+    L.tip ? h('p', { class: 'note focus' }, (P.lang === 'es' ? L.tip.es : L.tip.en)) : null,
     box, track,
-    h('div', { class: 'vctl' }, playBtn, btn('−5 s', () => seek(time() - 5), 'ghost small'), btn('+5 s', () => seek(time() + 5), 'ghost small'), loopBtn, coachBtn, timeEl),
+    h('div', { class: 'vctl' }, playBtn, btn('−5 s', () => seek(time() - 5), 'ghost small'), btn('+5 s', () => seek(time() + 5), 'ghost small'), rateN, rateF, loopBtn, coachBtn, timeEl),
     live, coachEl,
     h('div', { class: 'actions' }, finish)));
+  setRate(P.soundsRate || RATES.normal);
   S.ui = { box, fill, timeEl, playBtn, loopBtn, live, coachEl };
   renderLive(null);
   const dur = () => (S.ready && S.yt.getDuration()) || L.duration;
@@ -131,9 +147,27 @@ function soundLessonScreen() {
   function showCoach(b) {
     const words = coachWords(b.coach);
     const hear = async () => { for (const w of words) { await say('en', w.en); await wait(250); if (!SOUND) return; } };
+    const heard = h('p', { class: 'note' });
+    /* with a microphone: say each word, the app checks it (the same ear the arcade uses) */
+    const check = async () => {
+      if (!canSay()) return;
+      EAR.start(); heard.textContent = t('g_say_now');
+      for (const w of words) {
+        if (!SOUND) return;
+        const ok = await new Promise(res => { const ear = EAR.listen(w.en, (ok) => res(ok), () => res(null)); setTimeout(() => { ear.cancel(); res(false); }, 5000); });
+        if (ok === null) { heard.textContent = t('mic_denied'); EAR.stop(); return; }
+        heard.textContent = (ok ? t('so_heard_ok') : t('g_say_miss')) + ' · ' + w.en;
+        LOG.push({ t: Date.now(), kind: 'say', share: ok ? 1 : 0, missed: ok ? [] : [norm(w.en)] });
+        await wait(500);
+      }
+      EAR.stop();
+    };
     mount(coachEl, h('div', { class: 'eyebrow ok' }, t('so_coach')),
       h('div', { class: 'row' }, words.map(w => h('button', { class: 'linkish', translate: 'no', lang: 'en', onclick: () => say('en', w.en) }, w.en))),
-      h('div', { class: 'actions' }, btn(t('so_again'), () => { seek(b.t); coachEl.hidden = true; S.yt.playVideo(); }, 'ghost'), btn(t('so_hear'), hear, 'ghost'), primary(t('so_continue'), () => { coachEl.hidden = true; S.yt.playVideo(); })));
+      heard,
+      h('div', { class: 'actions' }, btn(t('so_again'), () => { seek(b.t); coachEl.hidden = true; EAR.stop(); S.yt.playVideo(); }, 'ghost'), btn(t('so_hear'), hear, 'ghost'),
+        canSay() ? btn(t('so_check'), check, 'ghost') : null,
+        primary(t('so_continue'), () => { coachEl.hidden = true; EAR.stop(); S.yt.playVideo(); })));
     coachEl.hidden = false;
   }
   loadYT().then(() => {
@@ -144,6 +178,7 @@ function soundLessonScreen() {
       events: {
         onReady: () => {
           S.ready = true;
+          S.yt.setPlaybackRate(P.soundsRate || 1.25);
           if (MUTED() || store.get('soundOff', false)) S.yt.mute();
           const resume = st.pos[L.n]; if (resume > 10 && resume < L.duration - 15) seek(resume);
         },

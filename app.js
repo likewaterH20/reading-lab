@@ -189,6 +189,8 @@ function onboarding() {
 function finishOnboarding() {
   P = { lang: OB.lang, level: OB.level, inds: OB.inds, when: OB.when, created: Date.now(), grade: OB.startGrade || 1, passed: {} };
   OB = null; TAB = 'today'; snapshot(); save(); render();
+  /* his 10/14 word: "we have to start there". Everyone begins with lesson 1 of the Sounds of English. */
+  startSoundLesson(1);
 }
 
 /* Readers prove what they already own, so nobody drills "the" for a week.
@@ -486,6 +488,13 @@ function endRun() {
   releaseMic();
   /* owning three quarters of your level's words opens the next one, test or no test */
   const op = openByPractice(); if (op && !r.opened) r.opened = op.g;
+  /* a Sounds of English lesson is mastered when its words come out right: the gate to the next video */
+  const sw = r.q.find(e => e.intro === 'soundwords');
+  if (sw && r.results.length) {
+    const p = Math.round(100 * r.results.filter(x => x.g >= 3).length / r.results.length);
+    const st = soundsState(); st.score = st.score || {}; st.score[sw.key] = Math.max(st.score[sw.key] || 0, p);
+    r.sound = { n: sw.key, p };
+  }
   snapshot(); save();
   endScreen(r);
 }
@@ -1247,6 +1256,7 @@ function endScreen(r) {
   const fix = runStruggle(r);
   screen(h('div', { class: 'eyebrow' }, t('end_title')),
     best ? h('div', { class: 'card best' }, h('div', { class: 'eyebrow' }, t('end_best')), h('p', { class: 'lead' }, best)) : null,
+    r.sound ? h('p', { class: 'lead' + (r.sound.p >= 80 ? ' opened' : '') }, t(r.sound.p >= 80 ? 'so_mastered' : 'so_review', { n: r.sound.n, p: r.sound.p })) : null,
     fix ? h('div', { class: 'card week' }, h('div', { class: 'eyebrow' }, t('fix_eyebrow')),
       h('p', { class: 'lead' }, fix.pat ? t('fix_why_pat', { n: fix.n, p: t('pat_' + fix.pat) }) : t('fix_why', { n: fix.n })),
       h('div', { class: 'actions' }, primary(t('fix_go'), () => startFix(fix)))) : null,
