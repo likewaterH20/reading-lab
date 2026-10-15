@@ -40,6 +40,10 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
   built like the Arabic app: embed, live card, coach pauses, drill after.
   Never download or re-host the videos. Blocks live in `build/sounds_course.py`.
   Test the lesson screen with `SOUND.onTime(seconds)`; the pane cannot play YouTube.
+  10/14: lesson 1 opens right after onboarding (everyone starts at the sounds);
+  speeds Normal 1.25x default / Fast 1.5x; tip per lesson for Spanish speakers;
+  mastery gate 80% on the after-video words (`P.sounds.score`), review first
+  when missed. "Super intelligent" for him = adapts, checks his voice, gates.
 
 ## How to work here
 - **Never edit what he is playing.** Serve his copy from the scratchpad mirror

@@ -50,6 +50,21 @@ this level's words + use-it + the reading test, via buildSession; older
 levels replay their own words via startLevel) with the daily read as a row
 inside it, then the ARCADE card. Stats live in Progress.
 
+**10/14, his word: "we have to start there... make it like two tiers of
+speed... start it going a little faster... everything has to be super
+intelligent... so people could start building their confidence in reading,
+especially bilingual people."** Now: lesson 1 opens automatically right after
+onboarding (`finishOnboarding` -> `startSoundLesson(1)`); two speeds, Normal
+= 1.25x (default) and Fast = 1.5x (`P.soundsRate`, `setPlaybackRate`); a
+Spanish-speaker tip per lesson (`tip` en/es in sounds_course.py, shown under
+the title); the coach pause has "Check me" when the mic can listen (EAR, one
+word at a time, logged as `say`); a lesson is MASTERED at 80% of its
+after-video words right (`P.sounds.score[n]`, set in `endRun`); the home
+card offers "Review lesson n" first when the last finished lesson scored
+under 80, with "Go on" as the ghost choice. Lessons 2-12 blocks: chapter
+cards now; word-level blocks from the captions are the next authoring job
+(captions in the scratchpad `soe/` folder, refetch with yt-dlp if wiped).
+
 **The Sounds of English** (sounds.js, 2026-10-12, his ask: "the pronunciation
 is the intro of reading... use the video how we made the learning arabic
 webapp"): EnglishAnyone's 12 phonics videos (2011, 2-6 min each), watched in
