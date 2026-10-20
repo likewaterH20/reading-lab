@@ -249,7 +249,7 @@ function placement(tl) {
     return screen(h('div', { class: 'eyebrow' }, tl('place_title')),
       h('h1', null, tl('grade') + ' ' + placed + ' ' + tl('place_of')),
       h('p', { class: 'lead' }, tl('lv_' + placed)),
-      h('div', { class: 'lbar' }, h('i', { style: `width:${Math.round(100 * placed / NLEV)}%` })),
+      h('div', { class: 'meter' }, h('i', { style: `width:${Math.round(100 * placed / NLEV)}%` })),
       h('p', { class: 'note' }, tl('place_next')),
       h('div', { class: 'actions' }, primary(tl('start'), finishOnboarding)));
   }
