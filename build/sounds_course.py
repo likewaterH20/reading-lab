@@ -17,7 +17,7 @@ heavy weather sweater ready already instead health wealth death breath meant dea
 leather sure pure who whom whose two too through though thought tough rough cough enough laugh move prove lose whole only
 most both gold cold hold told sold post host ghost father water warm war want wash watch what wand swan quality sugar put
 push pull full bull bush could would should area idea again against any many body copy very every eye bye dye lie tie pie
-die key they obey grey prey hey eight weight neigh sleigh people police machine unique improve approve remove anyone everyone someone none above glove dove shove come become""".split())
+die key they obey grey prey hey eight weight neigh sleigh people police machine unique improve approve remove anyone everyone someone none above glove dove shove come become sex sexy damn hell ass""".split())
 
 def spread(letters, t0, t1):
     n = len(letters); step = (t1 - t0) / n

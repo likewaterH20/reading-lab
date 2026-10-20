@@ -221,6 +221,8 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); }
 .letters span.past { color: var(--text); }
 .coachbox { border-left: 3px solid var(--accent); padding-left: 14px; display: flex; flex-direction: column; gap: 10px; }
 .wrow.now { box-shadow: inset 3px 0 0 var(--accent); }
+.blocklist .wrow { grid-template-columns: 48px minmax(0, 1fr); }
+.blocklist .wrow .g { white-space: normal; overflow: visible; }
 .wrow.now .g { color: var(--text); }
 .arcade .choices.grid { grid-template-columns: 1fr 1fr; }
 .arcade .sentence { font-size: clamp(20px, 4.6vw, 24px); }

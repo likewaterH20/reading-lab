@@ -111,7 +111,7 @@ function soundLessonScreen() {
   /* under the video, the learning layer (his word: "use the underneath area for more tips and
      repetition advice like the arabic app"): what is happening now, the lesson's blocks to tap
      and loop, the Spanish-speaker tip, and how to practise */
-  const blockRows = h('div', { class: 'list' }, blocks.map(b => { const row = h('button', { class: 'wrow', onclick: () => { seek(b.t); S.yt.playVideo(); } },
+  const blockRows = h('div', { class: 'list blocklist' }, blocks.map(b => { const row = h('button', { class: 'wrow', onclick: () => { seek(b.t); S.yt.playVideo(); } },
     h('span', { class: 'd' }, fmtTime(b.t)), h('span', { class: 'g' }, P.lang === 'es' ? b.es : b.en)); row._block = b; return row; }));
   const blocksCard = blocks.length ? h('div', { class: 'card' }, h('div', { class: 'eyebrow' }, t('so_blocks')), blockRows) : null;
   const tipsCard = h('div', { class: 'card' },
