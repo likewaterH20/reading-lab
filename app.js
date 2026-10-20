@@ -152,8 +152,9 @@ function onboarding() {
   if (OB.step === 'read') {
     say(OB.lang, tl('read_q'));
     return screen(h('h1', null, tl('read_q')), h('div', { class: 'choices' },
-      choose(tl('read_no'), null, () => { OB.level = 'beginner'; go('ind'); }),
-      choose(tl('read_yes'), null, () => { OB.level = 'reader'; go('ind'); })));
+      /* his 10/20 word: "super forward and simple to start": no industry step; job words are picked later in Profile */
+      choose(tl('read_no'), null, () => { OB.level = 'beginner'; OB.inds = []; go('primer'); }),
+      choose(tl('read_yes'), null, () => { OB.level = 'reader'; OB.inds = []; go('place'); })));
   }
   if (OB.step === 'ind') {
     if (OB.level === 'beginner') say(OB.lang, tl('ind_q'));
@@ -244,10 +245,12 @@ function placement(tl) {
     CONTENT.core.forEach(id => { if (ITEMS[id].rank <= upto) { CARDS[id] = { ...FSRS.seed(), seeded: true }; n++; } });
     OB.startGrade = placed;
     st.seeded = n;
+    /* the result: your level on the ladder of 13, in one look, and one button */
     return screen(h('div', { class: 'eyebrow' }, tl('place_title')),
-      h('h1', null, tl('grade') + ' ' + placed),
+      h('h1', null, tl('grade') + ' ' + placed + ' ' + tl('place_of')),
       h('p', { class: 'lead' }, tl('lv_' + placed)),
-      h('p', { class: 'note' }, (UI.place_done[OB.lang] || UI.place_done.en).replace('{n}', n)),
+      h('div', { class: 'lbar' }, h('i', { style: `width:${Math.round(100 * placed / NLEV)}%` })),
+      h('p', { class: 'note' }, tl('place_next')),
       h('div', { class: 'actions' }, primary(tl('start'), finishOnboarding)));
   }
   let item = mazeItem(st.pos, st.used);

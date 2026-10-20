@@ -12,12 +12,14 @@ const LEVELS_EN = [
 
 { grade: 1, name: "Grade 1", oral: 60, silent: 70,
   passages: [
-    { title: "The Bus",
-      text: "I take the bus to work at six every morning. The bus is red and big inside. I sit in the back by the window and watch the street. The bus stops many times on the way. I get off at Main Street and walk from there. It is not far, so I am always on time.",
+    { title: "Wash Your Hands",
+      text: "Wash your hands with soap for twenty seconds. That is as long as singing happy birthday two times. Wash them before you eat and after you use the bathroom. Wash them when you come home from work. Germs live on your hands. Soap takes them off. This one habit keeps you from getting sick more than any pill.",
       questions: [
-        { q: "When does the bus come?", a: ["At six", "At ten", "At noon", "At night"], correct: 0 },
-        { q: "Where does the rider get off?", a: ["At the shop", "At Main", "At the park", "At home"], correct: 1 },
-        { q: "How does the rider get to the job from the stop?", a: ["By car", "By bike", "On foot", "By train"], correct: 2 }
+      { q: "How long should you wash your hands?", a: ["Twenty seconds", "Two seconds", "Five minutes", "One minute"], correct: 0 },
+      { q: "What takes germs off your hands?", a: ["Soap", "Cold water", "A towel", "Sun"], correct: 0 },
+      { q: "When should you wash them?", a: ["Before you eat", "After you sleep", "Before TV", "At noon"], correct: 0 },
+      { q: "What lives on your hands?", a: ["Germs", "Salt", "Oil", "Dust only"], correct: 0 },
+      { q: "What does this habit do?", a: ["Keeps you from getting sick", "Makes you taller", "Saves money", "Helps you sleep"], correct: 0 }
       ] },
     { title: "Rent and the Lease",
       text: "Rent is due on the first of the month. If the rent is late, the landlord can add a fee. The fee must be in the lease. If it is not in the lease, he can not add it. Keep the lease in a safe spot. Keep a copy of each check you send. If there is a problem, you will need the proof.",
@@ -30,12 +32,14 @@ const LEVELS_EN = [
 
 { grade: 2, name: "Grade 2", oral: 100, silent: 115,
   passages: [
-    { title: "The Shift",
-      text: "My shift starts at seven, so I clock in at the front desk and get my list. First I stock the empty shelves in the back room. Then I check the dates on every carton of milk. Old milk goes to the back and the fresh milk goes in front. At noon I take a thirty minute break to eat something and rest my feet. At three I clock out and head home on the bus.",
+    { title: "How a Cold Spreads",
+      text: "A cold is caused by a virus, not by cold weather. The virus travels in tiny drops when a sick person coughs or sneezes. It also lives on hands, phones and door handles for hours. You catch it when you touch your face with those hands. There is no medicine that cures a cold. Rest, water and time do the work. Most colds are gone in about a week.",
       questions: [
-        { q: "What is the first task?", a: ["Checking milk", "Stocking shelves", "Taking a break", "Clocking out"], correct: 1 },
-        { q: "Where does the old milk go?", a: ["In front", "In the trash", "In the back", "On the desk"], correct: 2 },
-        { q: "What time does the shift end?", a: ["Noon", "Seven", "Three", "Six"], correct: 2 }
+      { q: "What causes a cold?", a: ["A virus", "Cold weather", "Wet hair", "Bad food"], correct: 0 },
+      { q: "How does the virus travel?", a: ["In tiny drops from a cough or sneeze", "Through the lights", "In food only", "Through the floor"], correct: 0 },
+      { q: "What cures a cold?", a: ["Nothing; rest, water and time", "A pill", "Hot soup", "Vitamin C"], correct: 0 },
+      { q: "How long does a cold usually last?", a: ["About a week", "One day", "A month", "An hour"], correct: 0 },
+      { q: "How do you catch it from a door handle?", a: ["By touching your face with your hands", "By looking at it", "By standing near it", "By opening it"], correct: 0 }
       ] },
     { title: "A Bank Account",
       text: "You can open a bank account with a photo ID. Some banks want a small deposit too. Ask if there is a monthly fee. Many banks will drop the fee if you get paid by direct deposit. Keep your PIN to yourself. Do not write it on the card. Check the balance each week so you know what you have.",
@@ -55,23 +59,27 @@ const LEVELS_EN = [
         { q: "Which comes out first?", a: ["Insurance", "Savings", "Taxes", "Union dues"], correct: 2 },
         { q: "Why check the hours?", a: ["To get a raise", "Mistakes are easier to fix early", "For the boss", "To pay less tax"], correct: 1 }
       ] },
-    { title: "The Night Market",
-      text: "The night market opens when the sun goes down. Vendors roll their carts into a long line under strings of lights, and the air smells of grilled corn and sugar. Some people come to eat, while others come to walk and talk. A woman near the end sells coffee from a steel pot. She has been there for twenty years and knows most of the regulars by name. When the last cart packs up, the street goes quiet again.",
+    { title: "Why We Have Seasons",
+      text: "The Earth is tilted as it travels around the Sun. For half the year, the top of the Earth leans toward the Sun. Then the days are long and the sunlight is strong, and it is summer in the north. For the other half, the top leans away, the days are short, and it is winter. Seasons are not caused by the Earth being closer to the Sun. In fact, the Earth is closest to the Sun in January. When it is summer in New York, it is winter in Buenos Aires.",
       questions: [
-        { q: "When does the market open?", a: ["At noon", "In the morning", "When the sun goes down", "On weekends only"], correct: 2 },
-        { q: "How long has the coffee seller been there?", a: ["Two years", "Twenty years", "One summer", "Since last week"], correct: 1 },
-        { q: "What happens when the last cart leaves?", a: ["A band plays", "The lights turn red", "The street goes quiet", "People go to the beach"], correct: 2 }
+      { q: "Why do we have seasons?", a: ["The Earth is tilted", "The Sun gets hotter", "The Earth moves closer", "The Moon blocks the Sun"], correct: 0 },
+      { q: "When is the Earth closest to the Sun?", a: ["In January", "In July", "In spring", "Never"], correct: 0 },
+      { q: "What is summer like in the north?", a: ["Long days, strong sunlight", "Short days", "Cold nights", "More rain"], correct: 0 },
+      { q: "What season is it in Buenos Aires when New York has summer?", a: ["Winter", "Summer", "Spring", "The same"], correct: 0 },
+      { q: "What leans toward the Sun in northern summer?", a: ["The top of the Earth", "The Moon", "The oceans", "The bottom of the Earth"], correct: 0 }
       ] }
   ] },
 
 { grade: 4, name: "Grade 4", oral: 133, silent: 150,
   passages: [
-    { title: "The Corner Store",
-      text: "Every morning before school, Marco stopped at the corner store on Third Street. The owner, an older man named Sal, always had the radio on. He kept the newspapers stacked by the door and the coffee hot by six. Marco never bought much, just a roll and sometimes a piece of fruit. But he liked the routine. It made the day feel like it had a beginning, not just an alarm clock.",
+    { title: "How Electricity Reaches Your Home",
+      text: "Electricity is made at a power plant. Some plants burn gas; others use wind or the sun. The power travels through tall lines at very high voltage. High voltage loses less energy over a long distance. Near your street, a box on a pole called a transformer lowers the voltage to a safe level. Wires carry it to the meter on your house, which counts what you use. Inside, a breaker panel splits it into circuits. Each breaker shuts off if its circuit pulls too much current. That is why a breaker trips when too many things run at once.",
       questions: [
-        { q: "What time did Sal have the coffee ready?", a: ["By six", "By seven", "By eight", "By nine"], correct: 0 },
-        { q: "What did Marco usually buy?", a: ["A newspaper", "A roll and sometimes fruit", "Coffee", "Nothing at all"], correct: 1 },
-        { q: "Why did Marco like stopping there?", a: ["The food was cheap", "Sal was his uncle", "The routine gave the day a beginning", "It was on his way home"], correct: 2 }
+      { q: "Why do power lines use very high voltage?", a: ["It loses less energy over long distances", "It is cheaper to make", "It is safer", "It looks brighter"], correct: 0 },
+      { q: "What does the transformer on the pole do?", a: ["Lowers the voltage to a safe level", "Makes electricity", "Stores it", "Counts your use"], correct: 0 },
+      { q: "What does the meter do?", a: ["Counts what you use", "Makes the power", "Lowers the voltage", "Trips when overloaded"], correct: 0 },
+      { q: "Why does a breaker trip?", a: ["A circuit pulls too much current", "The power plant stops", "It is raining", "The meter is full"], correct: 0 },
+      { q: "Name one way electricity is made.", a: ["Wind", "Water pipes", "Paper", "Sound"], correct: 0 }
       ] },
     { title: "Renewing a License",
       text: "Most states let you renew a driver's license online, but not every time. After a few renewals, they want to see you in person and take a new photo. Check the letter that comes in the mail. It tells you which kind of renewal you need. If you go in person, bring two forms of ID and proof of your address. A utility bill works. Arrive early in the day, because the line grows after lunch and the office closes on time whether you are done or not.",
@@ -91,12 +99,14 @@ const LEVELS_EN = [
         { q: "What traps the gas?", a: ["The pan", "The crust", "The gluten web", "Sugar"], correct: 2 },
         { q: "Why does bread stop rising in the oven?", a: ["It runs out of flour", "The heat kills the yeast", "The gas escapes", "The pan is too small"], correct: 1 }
       ] },
-    { title: "The Union Meeting",
-      text: "The meeting was held in the back room of the diner after the dinner rush. About thirty workers came, most of them still in their uniforms. The organizer explained the proposal in plain terms. There would be a two-dollar raise, a fixed schedule posted a week ahead, and a written process for complaints. Someone asked what would happen if the owner refused. The organizer said that was the point of a union. One person can be ignored. Thirty people who agree are harder to ignore.",
+    { title: "How a Law Is Made in the United States",
+      text: "A law begins as a bill, a written idea that a member of Congress introduces. A committee studies it, holds hearings and often changes it. If the committee approves, the full House or Senate debates and votes. The bill must pass both chambers in the same form, so the two sides often meet to settle the differences. Then it goes to the President, who signs it into law or vetoes it. Congress can override a veto, but only with two thirds of the votes in both chambers, which is rare. Most bills never get past the committee.",
       questions: [
-        { q: "Where was the meeting held?", a: ["A church", "The diner's back room", "A park", "The owner's office"], correct: 1 },
-        { q: "Which was part of the proposal?", a: ["Free meals", "A fixed schedule posted ahead", "New uniforms", "Shorter hours"], correct: 1 },
-        { q: "What was the organizer's main point?", a: ["The owner is kind", "A group is harder to ignore than one person", "Raises are automatic", "Meetings should be shorter"], correct: 1 }
+      { q: "What is a bill?", a: ["A written idea for a law", "A tax", "A court ruling", "A speech"], correct: 0 },
+      { q: "Who studies a bill first?", a: ["A committee", "The President", "The Supreme Court", "The voters"], correct: 0 },
+      { q: "What must happen before a bill goes to the President?", a: ["Both chambers pass it in the same form", "A court approves it", "The states vote", "The committee rejects it"], correct: 0 },
+      { q: "How can Congress override a veto?", a: ["Two thirds of both chambers", "A simple majority", "A new election", "It cannot"], correct: 0 },
+      { q: "What happens to most bills?", a: ["They never get past the committee", "They become law", "The President vetoes them", "The Senate rewrites them"], correct: 0 }
       ] }
   ] },
 
@@ -109,12 +119,14 @@ const LEVELS_EN = [
         { q: "What does a higher score usually earn you?", a: ["A bigger house", "A lower interest rate", "More credit cards", "A tax refund"], correct: 1 },
         { q: "What is the most effective way to raise it?", a: ["Opening new cards", "Paying every bill on time", "Closing old accounts", "Borrowing more"], correct: 1 }
       ] },
-    { title: "The Apprentice",
-      text: "Dana spent her first month as an electrician's apprentice doing almost no electrical work. She carried conduit, sorted fasteners, and swept the site every day. When she finally complained, the journeyman did not argue. He handed her a wiring diagram. He asked her to trace one circuit from the panel to the outlet. It took her forty minutes. Then he pointed out something. She had walked past that exact run of conduit every morning for four weeks without noticing it.",
+    { title: "How the Heart Works",
+      text: "The heart is a muscle about the size of your fist, and it beats around one hundred thousand times a day. It has four chambers. The right side receives blood that has delivered its oxygen to the body and pumps it to the lungs. The left side receives fresh blood from the lungs and pumps it out to everything else, which is why the left side is thicker and stronger. Arteries carry blood away from the heart and veins bring it back. Blood pressure is the force of that blood against the artery walls; when it stays high for years, the walls stiffen and the heart has to work harder.",
       questions: [
-        { q: "What did Dana do in her first month?", a: ["Wired panels", "Carried, sorted and swept", "Drew diagrams", "Trained others"], correct: 1 },
-        { q: "How did the journeyman respond to her complaint?", a: ["He fired her", "He gave her a diagram to trace", "He apologized", "He ignored her"], correct: 1 },
-        { q: "What was his point?", a: ["Sweeping is more important", "She had been seeing the work without understanding it", "Diagrams are useless", "Apprentices should not complain"], correct: 1 }
+      { q: "About how many times does the heart beat a day?", a: ["One hundred thousand", "One thousand", "A million", "Ten thousand"], correct: 0 },
+      { q: "Where does the right side pump blood?", a: ["To the lungs", "To the brain", "To the legs", "To the stomach"], correct: 0 },
+      { q: "Why is the left side thicker?", a: ["It pumps blood to the whole body", "It is older", "It holds more blood", "It rests more"], correct: 0 },
+      { q: "What do arteries do?", a: ["Carry blood away from the heart", "Bring blood back", "Make blood", "Filter blood"], correct: 0 },
+      { q: "What is blood pressure?", a: ["The force of blood against artery walls", "The speed of the heart", "The amount of blood", "The weight of the heart"], correct: 0 }
       ] }
   ] },
 
@@ -127,12 +139,14 @@ const LEVELS_EN = [
         { q: "What do night workers tend to experience?", a: ["Longer sleep", "Fewer hours and more waking", "More dreams", "No change"], correct: 1 },
         { q: "Why avoid bright light on the way home?", a: ["It hurts the eyes", "It signals the brain to stay awake", "It fades clothing", "It is expensive"], correct: 1 }
       ] },
-    { title: "The Deposition",
-      text: "A deposition is sworn testimony given outside a courtroom. It usually happens in a lawyer's conference room, with a stenographer recording every word. It is part of discovery, the stage of a lawsuit where each side learns what the other knows. Witnesses are often surprised by how ordinary it feels. That is precisely the danger. Everything said becomes part of the record and can be read aloud at trial. Experienced attorneys tell clients three things. Answer only the question asked. Pause before speaking. Never guess at facts you do not remember.",
+    { title: "Your Rights When Police Stop You",
+      text: "In the United States, anyone stopped by the police has rights, and they do not depend on citizenship. You may remain silent, and it is wise to say so out loud, because anything you say can be used in court. You may refuse a search of your body, your car or your home unless the officer has a warrant or sees something illegal in plain view. An officer may still pat you down for weapons. You may ask whether you are free to go; if the answer is yes, walk away calmly. If you are arrested, you have the right to a lawyer, and one must be provided if you cannot pay. Stay calm, keep your hands visible, and never run or argue at the scene. That protects you more than any argument.",
       questions: [
-        { q: "Where does a deposition usually happen?", a: ["A courtroom", "A lawyer's conference room", "A police station", "A judge's home"], correct: 1 },
-        { q: "What stage of a lawsuit is it part of?", a: ["Sentencing", "Discovery", "The appeal", "Jury selection"], correct: 1 },
-        { q: "What do attorneys advise?", a: ["Speak quickly", "Answer only what was asked", "Guess if unsure", "Refuse to answer"], correct: 1 }
+      { q: "Do these rights depend on citizenship?", a: ["No", "Yes", "Only for voters", "Only with a passport"], correct: 0 },
+      { q: "What should you say if you want to stay silent?", a: ["Say out loud that you are remaining silent", "Nothing at all", "Your address", "A lie"], correct: 0 },
+      { q: "When can an officer search your car without a warrant?", a: ["If something illegal is in plain view", "Any time", "Never", "Only at night"], correct: 0 },
+      { q: "What can you ask during a stop?", a: ["Whether you are free to go", "For the officer's home address", "To drive away", "For a refund"], correct: 0 },
+      { q: "What happens if you cannot pay for a lawyer?", a: ["One must be provided", "You get no lawyer", "You pay later with interest", "The case is dropped"], correct: 0 }
       ] }
   ] },
 
@@ -145,12 +159,14 @@ const LEVELS_EN = [
         { q: "Why can two people disagree honestly?", a: ["One is lying", "Both are reconstructing", "They heard different words", "Memory is perfect"], correct: 1 },
         { q: "Which memories drift the most?", a: ["The oldest ones", "The ones you revisit most", "The saddest ones", "The shortest ones"], correct: 1 }
       ] },
-    { title: "The Cost of a Cheap Tool",
-      text: "Anyone who works with their hands eventually learns the arithmetic of cheap tools. A bargain drill that fails on the third job has not saved money. It has cost the price of the drill, plus the hours lost, and sometimes the reputation of the person holding it. Professionals therefore buy the best version of the tools they use daily and the cheapest version of the ones they use once a year. The logic is not about quality for its own sake. It is about where failure is expensive, and that calculation applies well beyond the toolbox.",
+    { title: "Why the Moon Changes Shape",
+      text: "The Moon makes no light of its own; it reflects sunlight, and half of it is always lit. What changes is how much of that lit half faces the Earth as the Moon circles us every twenty-nine and a half days. When the Moon sits between the Earth and the Sun, its dark side faces us and we see nothing: a new moon. As it moves along, a growing sliver appears, then a half, then the full disc when the Earth sits between the Moon and the Sun. The phases then shrink in reverse order. Tides follow the same cycle, because the Moon's gravity pulls the oceans toward it, raising the water on the side nearest the Moon and, less obviously, on the far side too.",
       questions: [
-        { q: "What is the hidden cost of a cheap drill that fails?", a: ["Nothing", "Lost hours and reputation", "Higher taxes", "A warranty fee"], correct: 1 },
-        { q: "When do professionals buy the best version?", a: ["Never", "For tools used daily", "For tools used once a year", "Only on sale"], correct: 1 },
-        { q: "What is the logic really about?", a: ["Brand loyalty", "Where failure is expensive", "Looking professional", "Saving space"], correct: 1 }
+      { q: "Where does moonlight come from?", a: ["Reflected sunlight", "Fire on the Moon", "The Earth's glow", "Stars"], correct: 0 },
+      { q: "How long is one cycle of phases?", a: ["About twenty-nine and a half days", "One week", "One year", "Twelve hours"], correct: 0 },
+      { q: "When do we see a new moon?", a: ["When the Moon is between the Earth and the Sun", "When the Earth is between", "At midnight", "In winter"], correct: 0 },
+      { q: "What causes tides?", a: ["The Moon's gravity pulling the oceans", "Wind", "Ships", "The Sun's heat"], correct: 0 },
+      { q: "How much of the Moon is lit at any time?", a: ["Half", "All of it", "A quarter", "None"], correct: 0 }
       ] }
   ] },
 
@@ -163,12 +179,14 @@ const LEVELS_EN = [
         { q: "Why do some plants sit idle most of the year?", a: ["They are broken", "They exist for the peak hours", "Fuel is scarce", "Regulations forbid use"], correct: 1 },
         { q: "Why pay customers to shift usage?", a: ["Goodwill", "Reducing peak demand can be cheaper than a new plant", "Tax credits", "To sell more power"], correct: 1 }
       ] },
-    { title: "Negotiating the Offer",
-      text: "Most people accept the first salary they are offered. The moment feels fragile, as though a single request might make the offer evaporate. In practice, employers expect a counter and have usually budgeted for one. The stronger position is to respond with appreciation, ask for a day to consider, and return with a specific number supported by a reason, such as market data or a competing offer. Make the request once, calmly, and without apology. What loses offers is not asking for more. It is asking repeatedly, vaguely, or with visible resentment.",
+    { title: "How the Internet Carries a Message",
+      text: "When you send a message, your phone breaks it into small packets, and each packet carries the address of the destination and a number showing its place in the sequence. The packets travel separately, hopping from router to router, and they may take different paths across the network. That is why the system survives when any single line fails. At the far end they are put back in order, and any missing packet is requested again. The addresses are numbers. The names you type, such as a website's name, are translated into those numbers by a directory service before the first packet leaves. All of this takes a fraction of a second, which is why a message to the next room and a message to another continent feel the same.",
       questions: [
-        { q: "Why do most people accept the first offer?", a: ["It is always fair", "The moment feels fragile", "Counters are illegal", "HR insists"], correct: 1 },
-        { q: "What should a counter include?", a: ["A threat", "A specific number and a reason", "A list of complaints", "A deadline"], correct: 1 },
-        { q: "What actually loses offers?", a: ["Asking once", "Asking repeatedly or with resentment", "Taking a day to think", "Citing market data"], correct: 1 }
+      { q: "What does your phone do to a message before sending it?", a: ["Breaks it into packets", "Encrypts it with a key only", "Prints it", "Stores it for a day"], correct: 0 },
+      { q: "Why does the network survive when a line fails?", a: ["Packets can take different paths", "Lines never fail", "Messages wait", "Only one path exists"], correct: 0 },
+      { q: "What happens to a missing packet?", a: ["It is requested again", "The message is lost", "It is replaced with zeros", "The router keeps it"], correct: 0 },
+      { q: "What translates a website's name into numbers?", a: ["A directory service", "Your keyboard", "The sender", "The screen"], correct: 0 },
+      { q: "What are addresses on the network?", a: ["Numbers", "Names", "Colors", "Pictures"], correct: 0 }
       ] }
   ] },
 

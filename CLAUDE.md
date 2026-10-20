@@ -47,6 +47,12 @@ Chrome at http://localhost:4400 and talks in quick voice-typed messages.
   mastery gate 80% on the after-video words (`P.sounds.score`), review first
   when missed. "Super intelligent" for him = adapts, checks his voice, gates.
 
+- 10/20: "super forward and simple to start... keep track of progress...
+  UI super minimal... the reading to be basic knowledge and facts everyone
+  should know". Onboarding = language, can you read, placement. Passages are
+  FACTS (health, safety, civics, science, money, how things work), never
+  little stories. New passages: facts, FK-gated, 5 questions inline.
+
 ## How to work here
 - **Never edit what he is playing.** Serve his copy from the scratchpad mirror
   on 4400; build and test on a separate copy on **4401**; release with rsync

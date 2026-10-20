@@ -16,6 +16,8 @@ UI = {
  "place_q":     {"en": "Which word fits? Tap it.", "es": "¿Qué palabra encaja? Tócala."},
  "place_skip":  {"en": "Not sure? Pick one anyway. It only decides where you start.", "es": "¿No estás seguro? Elige una igual. Solo decide dónde empiezas."},
  "place_done":  {"en": "You start here. {n} common words are counted as known already.", "es": "Empiezas aquí. {n} palabras comunes ya cuentan como conocidas."},
+ "place_of":    {"en": "of 13", "es": "de 13"},
+ "place_next":  {"en": "Each level opens the next. First, the sounds of English: lesson 1 starts now.", "es": "Cada nivel abre el siguiente. Primero, los sonidos del inglés: la lección 1 empieza ahora."},
  "start":       {"en": "Start", "es": "Empezar"},
  "primer1":     {"en": "Reading is turning letters into sounds. English has twenty six letters and forty four sounds.",
                  "es": "Leer es convertir letras en sonidos. El inglés tiene veintiséis letras y cuarenta y cuatro sonidos."},

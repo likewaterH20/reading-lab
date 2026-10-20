@@ -6,24 +6,24 @@
 const LEVELS_MORE = [
 
 { grade: 1, passages: [
-  { title: "The Lunch Box",
-    text: "I pack my lunch the night before work. I put rice and beans in a box with a lid. I add a fork and a napkin on top. In the morning I grab the box and go. At noon I eat at my desk with the radio on. It costs less than the food truck outside. It tastes like home to me. I save ten dollars a day this way.",
-    questions: [
-      { q: "When does the writer pack lunch?", a: ["The night before", "In the morning", "At noon", "After work"], correct: 0 },
-      { q: "What is in the box?", a: ["Rice and beans", "Soup", "A sandwich", "Fruit"], correct: 0 },
-      { q: "Where does the writer eat?", a: ["At the desk", "In the truck", "At home", "In the park"], correct: 0 },
-      { q: "How much is saved each day?", a: ["Ten dollars", "Two dollars", "Fifty dollars", "Nothing"], correct: 0 },
-      { q: "Why does the writer like the lunch?", a: ["It tastes like home", "It is hot", "It is free", "It is big"], correct: 0 }
-    ] },
-  { title: "The Test Drive",
-    text: "We went to look at a used car on Saturday. The seller let us take it out for a drive. I turned on the radio for a minute. Then I turned it off again. I wanted to hear the engine run. It was quiet on the road. The brakes felt strong at the light. My wife checked the seats in the back. We said we would think about it at home. We did not buy it that day.",
-    questions: [
-      { q: "Why did the writer turn off the radio?", a: ["To hear the engine", "It was loud", "It was broken", "The man said to"], correct: 0 },
-      { q: "What kind of car was it?", a: ["A used car", "A new car", "A truck", "A van"], correct: 0 },
-      { q: "How did the brakes feel?", a: ["Strong", "Weak", "Loud", "Soft"], correct: 0 },
-      { q: "What did the wife check?", a: ["The back seats", "The tires", "The price", "The lights"], correct: 0 },
-      { q: "Did they buy the car that day?", a: ["No", "Yes", "Only the tires", "The man bought it"], correct: 0 }
-    ] }
+  { title: "Drink Water",
+      text: "Your body is mostly water. You lose some each day when you sweat. If you do not drink enough, you feel tired. You may get a headache. Most adults need about eight cups a day. You need more on a hot day. Water is better than soda. Soda has sugar that hurts your teeth.",
+      questions: [
+      { q: "What is your body mostly made of?", a: ["Water", "Bone", "Sugar", "Air"], correct: 0 },
+      { q: "What happens if you do not drink enough?", a: ["You feel tired and get headaches", "You sleep better", "You get taller", "Nothing"], correct: 0 },
+      { q: "About how many cups does an adult need a day?", a: ["Eight", "Two", "Twenty", "One"], correct: 0 },
+      { q: "When do you need more water?", a: ["On a hot day", "In winter", "At night", "Never"], correct: 0 },
+      { q: "Why is soda worse than water?", a: ["Its sugar hurts your teeth", "It is cold", "It costs less", "It has no taste"], correct: 0 }
+      ] },
+  { title: "Smoke Alarms",
+      text: "A smoke alarm wakes you up if there is a fire at night. Most fires that kill people start when they sleep. Put one alarm in each bedroom. Put one in the hall too. Press the test button once a month. Change the battery once a year. A beep every minute means the battery is low. An alarm costs less than a pizza. It can save your life.",
+      questions: [
+      { q: "What does a smoke alarm do?", a: ["Wakes you up if there is a fire", "Puts out fires", "Calls the police", "Cools the room"], correct: 0 },
+      { q: "How often should you press the test button?", a: ["Once a month", "Once a day", "Once a year", "Never"], correct: 0 },
+      { q: "What does a beep every minute mean?", a: ["The battery is low", "There is a fire", "It is new", "It is broken for good"], correct: 0 },
+      { q: "Where should alarms go?", a: ["In each bedroom and the hall", "Only in the kitchen", "Outside", "In the car"], correct: 0 },
+      { q: "When do most deadly fires start?", a: ["When people are asleep", "At lunch", "In the morning", "On weekends"], correct: 0 }
+      ] }
 ] },
 
 { grade: 2, passages: [
@@ -162,7 +162,7 @@ const LEVELS_MORE = [
       { q: "Why might a performer who does not write earn a modest income from a hit?", a: ["The composition payments go to the writers", "Streaming is free", "Labels pay nothing", "Covers take the money"], correct: 0 },
       { q: "Who tracks each play for songwriters?", a: ["Collecting societies", "The label", "The performer", "The government"], correct: 0 }
     ] },
-  { title: "Reading a Pay Stub",
+  { title: "What a Pay Stub Shows",
     text: "A pay stub separates what you earned from what you keep. Gross pay is the total before anything is taken out. Federal and state income tax come off first, and their size depends on the allowances you claimed on your tax form, so a large refund each spring usually means too much was withheld all year. Social Security and Medicare are taken at fixed rates and fund benefits you collect later. Health insurance and retirement contributions may also be deducted, often before tax, which lowers the taxable amount. Net pay is what lands in your account. Checking the stub each period catches errors in hours or rates while they are still easy to fix.",
     questions: [
       { q: "What is gross pay?", a: ["The total before deductions", "What you take home", "Overtime only", "Your bonus"], correct: 0 },

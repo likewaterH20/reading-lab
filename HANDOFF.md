@@ -50,6 +50,20 @@ this level's words + use-it + the reading test, via buildSession; older
 levels replay their own words via startLevel) with the daily read as a row
 inside it, then the ARCADE card. Stats live in Progress.
 
+**10/20, his word: "i need it to be super forward and simple to start
+learning and keep track of progress i need the Ui super minimal and the
+intro screen we need to work on the section where we find out your level of
+knowledge. i want the reading to be basic knowledge and facts everyone should
+know."** Done: onboarding = language, can you read, placement (the industry
+step is gone; industries are picked in Profile); the placement result is one
+look: "Level 5 of 13", its label, a bar on the ladder of 13, "Each level opens
+the next. First, the sounds of English: lesson 1 starts now.", Start. Eleven
+story passages were replaced by basic-knowledge ones at the same level (hand
+washing, water, smoke alarms, how a cold spreads, seasons, electricity to the
+home, how a law is made, the heart, rights when police stop you, moon phases,
+how the internet carries a message), 5 questions inline each. Duplicate
+title fixed ("What a Pay Stub Shows" at level 8).
+
 **10/15, his word: "get rid of arcade we dont need that lets just focus on
 the videos and use the underneath area for more tips and repition advice like
 the arabic app" and "make this app super minimal and easy for anyone to start
