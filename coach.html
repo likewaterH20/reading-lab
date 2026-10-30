@@ -20,10 +20,11 @@ h1 { font-size: 26px; margin: 0; } h2 { font-size: 22px; margin: 0; }
 .stat span { color: var(--muted); font-size: 13px; }
 .dots { display: flex; gap: 6px; flex-wrap: wrap; }
 .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--panel-2); color: var(--muted); }
-.dot.pass { background: var(--accent); color: #1a1405; } .dot.weak { background: var(--miss); color: #1a1405; }
+.dot.pass { background: var(--accent); color: #1a1405; } .dot.part { background: none; box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); font-size: 10px; width: 34px; border-radius: 13px; }
 .focus { border-left: 3px solid var(--accent); padding-left: 10px; margin: 0; }
 svg { width: 100%; height: 70px; } svg path { fill: none; stroke: var(--accent); stroke-width: 2.5; } svg text { fill: var(--muted); font-size: 11px; }
 .ago.stale { color: var(--miss); }
+.rm { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
 @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
@@ -46,7 +47,11 @@ function line(vals) {
 }
 function learnerCard(L) {
   const d = L.data || {};
-  const dots = el('div', 'dots', Array.from({ length: 12 }, (_, i) => { const n = i + 1, s = (d.soundScores || {})[n]; return el('span', 'dot' + (s >= 80 ? ' pass' : s != null ? ' weak' : ''), n); }));
+  /* one dot per sound lesson: amber = all five practices passed, outlined = in progress (n/5) */
+  const dots = el('div', 'dots', Array.from({ length: 12 }, (_, i) => {
+    const n = i + 1, p = (d.soundPrac || {})[n] || 0;
+    return el('span', 'dot' + (p >= 5 ? ' pass' : p > 0 ? ' part' : ''), p > 0 && p < 5 ? p + '/5' : n);
+  }));
   const speeds = (d.reads || []).map(r => r.speed);
   const stale = Date.now() - (d.lastActive || L.updated) > 3 * 864e5;
   return el('div', 'card',
@@ -60,7 +65,14 @@ function learnerCard(L) {
     speeds.length > 1 ? [el('p', 'note', 'Reading speed, last tests'), line(speeds)] : null,
     d.sayRight != null ? el('p', 'note', 'Said right out loud: ' + d.sayRight + '%') : null,
     (d.focus || []).length ? el('p', 'focus', 'Working on: ' + d.focus[0]) : null,
-    (d.stumbles || []).length ? el('p', 'note', 'Stumbles on: ' + d.stumbles.join(', ')) : null);
+    (d.stumbles || []).length ? el('p', 'note', 'Stumbles on: ' + d.stumbles.join(', ')) : null,
+    el('div', 'row', el('span'), (() => { const b = el('button', 'rm', 'Remove'); b.onclick = () => removeLearner(L); return b; })()));
+}
+async function removeLearner(L) {
+  if (!confirm('Remove ' + L.name + ' from your list? Their app keeps working; you stop seeing it.')) return;
+  const [coach, key] = decodeURIComponent(location.hash.slice(1)).split(':');
+  await fetch(SYNC_URL + '/c/' + coach + '/' + L.uid, { method: 'DELETE', headers: { Authorization: 'Bearer ' + key } });
+  location.reload();
 }
 (async () => {
   const [coach, key] = decodeURIComponent(location.hash.slice(1)).split(':');

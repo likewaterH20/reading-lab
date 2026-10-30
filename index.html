@@ -223,6 +223,17 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); }
 .letters span.past { color: var(--text); }
 .coachbox { border-left: 3px solid var(--accent); padding-left: 14px; display: flex; flex-direction: column; gap: 10px; }
 .wrow.now { box-shadow: inset 3px 0 0 var(--accent); }
+/* the sounds course is the main event; the level card sits quietly under it until the course is done */
+.card.main { box-shadow: inset 4px 0 0 var(--accent), inset 0 1px 0 rgba(255,255,255,.05), var(--shadow); padding: 24px; }
+.card.main h2 { font-size: 26px; }
+.levelcard.quiet { opacity: .82; box-shadow: none; }
+.steps2 { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-weight: 600; color: var(--muted); }
+.steps2 .on { color: var(--accent); } .steps2 .past { color: var(--text); text-decoration: line-through; text-decoration-color: var(--accent); }
+.pdots { display: flex; gap: 8px; align-items: center; }
+.pdots .pd { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); }
+.pdots .pd.on, .pdots .pd.done { background: var(--accent); border-color: var(--accent); }
+.pdots .pd.cur { border-color: var(--accent); }
+.pdots.big .pd { width: 22px; height: 22px; }
 .lessons { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
 .lnum { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--muted); font-weight: 700; }
 .lnum.done { background: var(--panel-2); color: var(--text); border-color: transparent; }

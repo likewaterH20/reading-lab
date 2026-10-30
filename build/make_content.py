@@ -289,7 +289,10 @@ for L in SC.LESSONS:
     check(len(hits) >= 8, "sound lesson %d (%s) matches only %d library words" % (L["n"], L["title"], len(hits)))
     for b in L.get("blocks", []):
         check(b["t"] < b["end"] <= L["duration"], "sound lesson %d block at %s has bad times" % (L["n"], b["t"]))
-sounds = [{k: v for k, v in L.items()} for L in SC.LESSONS]
+sounds = [{**{k: v for k, v in L.items()}, "chunks": SC.CHUNKS[L["n"]]} for L in SC.LESSONS]
+for L in sounds:
+    with_chunk = [it for it in single_words if re.search(L["pattern"], it["en"]) and any(c in it["en"] for c in L["chunks"])]
+    check(len(with_chunk) >= 10, "sound lesson %d: only %d library words carry one of its chunks" % (L["n"], len(with_chunk)))
 
 content = {"items": items, "levels": levels, "daily": daily, "facts": [f["id"] for f in facts], "sounds": sounds, "soundsChannel": SC.CHANNEL_URL, "soundsExcept": sorted(SC.EXCEPT),
            "topics": [{"id": t[0], "en": t[1], "es": t[2]} for t in C.LIFE_TOPICS], "starter": starter, "industries": industries, "core": core_ids,

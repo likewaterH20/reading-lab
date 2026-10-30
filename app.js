@@ -208,7 +208,10 @@ function onboarding() {
 }
 function finishOnboarding() {
   P = { lang: OB.lang, level: OB.level, inds: OB.inds, when: OB.when, created: Date.now(), grade: OB.startGrade || 1, placed: OB.startGrade || 1, passed: {} };
-  if (COACH() && OB.name) { P.name = OB.name; P.coach = COACH(); P.uid = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); }
+  if (COACH() && OB.name) {
+    const rnd = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(36).padStart(2, '0')).join('').slice(0, n * 2);
+    P.name = OB.name; P.coach = COACH(); P.uid = rnd(8).toLowerCase(); P.tok = rnd(20);   // tok: this learner's private write key
+  }
   OB = null; TAB = 'today'; snapshot(); save(); render(); syncNow(true);
   /* his 10/14 word: "we have to start there". Everyone begins with lesson 1 of the Sounds of English. */
   startSoundLesson(1);
@@ -443,7 +446,8 @@ function todayScreen() {
     weekCard,
     /* the Sounds of English video course comes first; the arcade was removed at his word (10/15) */
     soundsCard(),
-    levelCard({ plan, q: nothing ? null : pv.q, more: doneToday }));
+    /* while the sounds course runs, it is the main event; the level session is the quieter second card */
+    levelCard({ plan, q: nothing ? null : pv.q, more: doneToday, quiet: !soundsDone() }));
 }
 function levelTile(L) {
   const g = L.grade, open = g <= P.grade;
@@ -469,10 +473,12 @@ function levelCard(today) {
   const nav = (d) => { LVIEW = g + d; render(); };
   const current = g === P.grade && today;
   /* your level plays the full session (reviews, new words, the test); an older level replays its own words */
+  const quiet = today && today.quiet;
+  const mk = (label, fn) => quiet ? btn(label, fn, 'ghost') : primary(label, fn);
   const play = current
-    ? (today.q ? primary(today.more ? t('go_more') : t('lv_play'), () => startRun(today.q)) : null)
-    : primary(t('lv_replay'), () => startLevel(g));
-  return h('div', { class: 'levelcard' + (g === P.grade ? ' current' : '') },
+    ? (today.q ? mk(today.more ? t('go_more') : t('lv_play'), () => startRun(today.q)) : null)
+    : mk(t('lv_replay'), () => startLevel(g));
+  return h('div', { class: 'levelcard' + (g === P.grade ? ' current' : '') + (quiet ? ' quiet' : '') },
     h('div', { class: 'row between' },
       g > 1 ? h('button', { class: 'ghost small', onclick: () => nav(-1), 'aria-label': t('lv_prev') }, '‹ ' + gradeName(g - 1)) : h('span'),
       g < P.grade ? h('button', { class: 'ghost small', onclick: () => nav(1), 'aria-label': t('lv_next') }, gradeName(g + 1) + ' ›') : h('span')),
@@ -1378,7 +1384,11 @@ function readingCard() {
    and gave a name sends anything: a small summary after each session, to the coach's
    Cloudflare worker. No audio, no typed sentences. The coach reads it on coach.html. */
 const SYNC_URL = '';   // set once the worker has an address
-try { const c = Q.get('coach'); if (c && /^[a-z0-9-]{2,40}$/.test(c)) localStorage.setItem('rl.coach', c); } catch {}
+try {
+  const c = Q.get('coach'), k = Q.get('k');
+  if (c && /^[a-z0-9-]{2,40}$/.test(c)) localStorage.setItem('rl.coach', c);
+  if (k && /^[A-Za-z0-9]{8,64}$/.test(k)) localStorage.setItem('rl.enrol', k);   // the coach's sign-up code, sent only with the first sync
+} catch {}
 const COACH = () => { try { return localStorage.getItem('rl.coach'); } catch { return null; } };
 let lastSync = 0;
 function syncSummary() {
@@ -1388,7 +1398,7 @@ function syncSummary() {
   const weak = weakest(2), pat = topPattern();
   return {
     lang: P.lang, kind: P.level, level: P.grade, placed: P.placed || null, of: NLEV,
-    soundsDone: (P.sounds && P.sounds.done || []).length, soundScores: (P.sounds && P.sounds.score) || {},
+    soundsDone: (P.sounds && P.sounds.done || []).length, soundScores: (P.sounds && P.sounds.score) || {}, soundPrac: (P.sounds && P.sounds.prac) || {},
     owned: ownedIds().length, days: Object.keys(DAYS).filter(k => DAYS[k].n > 0).length, created: P.created,
     bestSpeed: reads.length ? Math.max(...reads.map(x => x.speed)) : null,
     reads: reads.slice(-10).map(x => ({ t: x.t, speed: x.speed, target: x.target, pass: !!x.pass, level: x.grade })),
@@ -1399,12 +1409,12 @@ function syncSummary() {
   };
 }
 function syncNow(force) {
-  if (!SYNC_URL || !P || !P.coach || !P.uid || !P.name) return;
+  if (!SYNC_URL || !P || !P.coach || !P.uid || !P.name || !P.tok) return;
   if (!force && Date.now() - lastSync < 10 * 60e3) return;
   lastSync = Date.now();
   try {
     fetch(SYNC_URL + '/p', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ coach: P.coach, uid: P.uid, name: P.name, data: syncSummary() }) }).catch(() => {});
+      body: JSON.stringify({ coach: P.coach, uid: P.uid, tok: P.tok, enrol: (() => { try { return localStorage.getItem('rl.enrol') || undefined; } catch { return undefined; } })(), name: P.name, data: syncSummary() }) }).catch(() => {});
   } catch {}
 }
 

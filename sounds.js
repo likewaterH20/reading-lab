@@ -6,7 +6,16 @@
    before moving on, and after the video the app drills real words from the
    library that carry the lesson's pattern (the proven item flow, so it feeds
    memory). Progress: P.sounds = { done: [n...], pos: { n: seconds } }. */
-function soundsState() { P.sounds = P.sounds || { done: [], pos: {}, score: {} }; P.sounds.score = P.sounds.score || {}; P.sounds.last = P.sounds.last || {}; P.sounds.reps = P.sounds.reps || {}; return P.sounds; }
+function soundsState() {
+  P.sounds = P.sounds || { done: [], pos: {}, score: {} };
+  const st = P.sounds;
+  st.score = st.score || {}; st.last = st.last || {}; st.reps = st.reps || {};
+  st.watched = st.watched || []; st.prac = st.prac || {}; st.used = st.used || {};
+  /* lessons finished before the practice existed count as practised */
+  for (const n of st.done) { if (!st.watched.includes(n)) st.watched.push(n); if (st.prac[n] == null) st.prac[n] = PRACTICE_N; }
+  return st;
+}
+const PRACTICE_N = 5, PRACTICE_ITEMS = 5, PRACTICE_PASS = 4;
 const soundsDone = () => P && soundsState().done.length >= CONTENT.sounds.length;
 const SOUND_PASS = 80;   // a lesson is mastered when this share of its words comes out right
 const soundMastered = n => (soundsState().score[n] || 0) >= SOUND_PASS;
@@ -24,23 +33,30 @@ function nextSoundLesson() {
   const st = soundsState();
   return CONTENT.sounds.find(L => !st.done.includes(L.n)) || CONTENT.sounds[0];
 }
+/* the main event of the app (his 10/31 word): watch the lesson, then five practice
+   challenges; passing all five opens the next video */
 function soundsCard() {
   const st = soundsState(), L = nextSoundLesson();
   const all = soundsDone();
-  const last = st.done.length ? CONTENT.sounds.find(x => x.n === st.done[st.done.length - 1]) : null;
-  const needsReview = last && !soundMastered(last.n) && last.n < L.n;
   const rate = P.soundsRate || 1.25;
+  const watched = st.watched.includes(L.n);
+  const passed = st.prac[L.n] || 0;
   const due = soundsDue().filter(d => d.days <= 0 && d.L.n !== L.n)[0];
   const soon = !due && soundsDue().filter(d => d.days > 0)[0];
-  return h('div', { class: 'card' },
+  const dots = h('div', { class: 'pdots', 'aria-label': passed + ' / ' + PRACTICE_N },
+    Array.from({ length: PRACTICE_N }, (_, i) => h('span', { class: 'pd' + (i < passed ? ' on' : '') })));
+  return h('div', { class: 'card main' },
     h('div', { class: 'row between' }, h('h2', null, t('so_title')), h('span', { class: 'note' }, all ? t('so_all_done') : st.done.length ? t('so_done_n', { a: st.done.length }) : t('so_start_here'))),
     h('p', { class: 'lead' }, t('so_lesson', { n: L.n }) + ' · ' + (P.lang === 'es' ? L.es : L.title)),
-    needsReview ? h('p', { class: 'note' }, t('so_review', { n: last.n, p: st.score[last.n] || 0 })) : null,
+    /* step 1 watch, step 2 practise five times */
+    all ? null : h('div', { class: 'steps2' },
+      h('span', { class: watched ? 'past' : 'on' }, '1 ' + t('so_step_watch')),
+      h('span', { class: watched ? 'on' : '' }, '2 ' + t('so_step_practice')), watched ? dots : null),
     h('div', { class: 'row between' },
-      h('span', { class: 'note' }, Math.round(L.duration / 60 / rate) + ' min · ' + rate + '×'),
-      needsReview
-        ? h('span', { class: 'row' }, btn(t('so_anyway', { n: L.n }), () => startSoundLesson(L.n), 'ghost'), primary(t('so_rewatch', { n: last.n }), () => startSoundLesson(last.n)))
-        : primary(all ? t('so_rewatch', { n: L.n }) : t('so_watch', { n: L.n }), () => startSoundLesson(L.n))),
+      h('span', { class: 'note' }, watched && !all ? t('pr_left', { k: PRACTICE_N - passed }) : Math.round(L.duration / 60 / rate) + ' min · ' + rate + '×'),
+      all ? primary(t('so_rewatch', { n: L.n }), () => startSoundLesson(L.n))
+        : watched ? h('span', { class: 'row' }, btn(t('so_watch_again'), () => startSoundLesson(L.n), 'ghost'), primary(t('pr_n', { k: passed + 1 }), () => startPractice(L.n, passed)))
+        : primary(t('so_watch', { n: L.n }), () => startSoundLesson(L.n))),
     /* the spaced rewatch: a finished lesson comes back on the ladder */
     due ? h('div', { class: 'row between dr-row' }, h('span', { class: 'note' }, t('so_due', { n: due.L.n })), btn(t('so_rewatch', { n: due.L.n }), () => startSoundLesson(due.L.n), 'ghost small'))
       : soon ? h('p', { class: 'note' }, t('so_next_in', { n: soon.L.n, d: soon.days })) : null,
@@ -244,7 +260,8 @@ function finishSoundLesson() {
   const S = SOUND; if (!S || S.over) return;
   S.over = true;
   const L = S.L, st = soundsState();
-  if (!st.done.includes(L.n)) st.done.push(L.n);
+  /* watching opens the practice; passing all five practice challenges marks the lesson done */
+  if (!st.watched.includes(L.n)) st.watched.push(L.n);
   st.pos[L.n] = 0;
   /* the rewatch ladder: this watch counts, the next one is due in 3, 7, then 21 days */
   if (st.last[L.n]) st.reps[L.n] = (st.reps[L.n] || 0) + 1;
@@ -253,8 +270,141 @@ function finishSoundLesson() {
   snapshot(); save(); syncNow(true);
   clearInterval(S.timer); try { S.yt && S.yt.destroy(); } catch {}
   SOUND = null;
-  const ids = soundLessonWords(L);
   document.body.classList.remove('running');
-  if (!ids.length) return render();
-  startRun([{ intro: 'soundwords', key: L.n }, ...ids.map(id => ({ id, mode: CARDS[id] ? 'review' : 'new' }))]);
+  /* back home, where the practice now shows up as the main button */
+  TAB = 'today'; window.scrollTo(0, 0); render();
 }
+
+/* ============================ THE FIVE PRACTICE CHALLENGES ============================
+   After a video: five short challenges built only from that lesson's sound. Each is five
+   items; four right passes it and fills a dot. A miss retries that one challenge with new
+   words. All five passed = lesson mastered, next video open. Every answer feeds memory.
+     1 Listen and pick   hear a word, pick it from look-alikes
+     2 Find the sound    the word with its sound blanked (m_p), pick the missing sound
+     3 Type it           hear it, type it
+     4 Say it            read it out loud, the mic checks (no mic: listen and pick again)
+     5 Quick ear         two choices, five seconds each */
+const PR_KINDS = ['pick', 'find', 'type', 'say', 'quick'];
+let PRAC = null;
+function practiceWords(L, need, kind) {
+  const st = soundsState();
+  const rx = new RegExp(L.pattern), chunk = w => L.chunks.find(c => w.includes(c));
+  let pool = CONTENT.items.filter(it => it.kind === 'word' && !it.en.includes(' ') && it.en === it.en.toLowerCase() && it.en.length <= 8
+    && rx.test(it.en) && !SOUND_EXCEPT.has(it.en) && clipUrl('en', it.en, false) && (kind !== 'find' || chunk(it.en)));
+  const recent = new Set(st.used[L.n] || []);
+  pool = [...pool.filter(it => !recent.has(it.id)).sort(() => Math.random() - 0.5), ...pool.filter(it => recent.has(it.id)).sort(() => Math.random() - 0.5)];
+  return pool.slice(0, need);
+}
+function soundAlikes(word, k = 3) {
+  const cands = CONTENT.items.filter(it => it.kind === 'word' && !it.en.includes(' ') && it.en !== word && it.en === it.en.toLowerCase() && Math.abs(it.en.length - word.length) <= 1);
+  const near = [...new Set(cands.filter(it => lev(it.en, word) <= 2).map(it => it.en))].sort(() => Math.random() - 0.5);
+  const out = near.slice(0, k);
+  while (out.length < k && cands.length) { const r = cands[Math.floor(Math.random() * cands.length)].en; if (!out.includes(r)) out.push(r); }
+  return out;
+}
+function practiceGrade(it, ok, kind, typed) {
+  const c = CARDS[it.id];
+  const e = { t: Date.now(), id: it.id, g: ok ? 3 : 1, ph: 'practice:' + kind };
+  if (kind === 'type') { e.w = 1; if (!ok && typed != null) e.pat = spellPatterns(it.en, typed); }
+  LOG.push(e);
+  if (!c) CARDS[it.id] = FSRS.rate(null, e.g); else if (today(new Date(c.last)) !== today()) CARDS[it.id] = FSRS.rate(c, e.g);
+}
+function startPractice(n, k) {
+  stopVoice();
+  const L = CONTENT.sounds.find(x => x.n === n);
+  let kind = PR_KINDS[k];
+  if (kind === 'say' && !canSay()) kind = 'pick';
+  const words = practiceWords(L, PRACTICE_ITEMS, kind);
+  PRAC = { L, k, kind, words, i: 0, right: 0, token: 0, over: false };
+  document.body.classList.add('running');
+  if (kind === 'say') EAR.start();
+  practiceItem();
+}
+function practiceShell(title) {
+  const A = PRAC;
+  const host = h('div', { class: 'stage practice' });
+  const pips = h('div', { class: 'pdots' }, A.words.map((_, i) => h('span', { class: 'pd' + (i < A.i ? ' done' : i === A.i ? ' cur' : '') })));
+  mount(APP(), h('section', { class: 'screen run' },
+    h('div', { class: 'runbar' }, h('span', { class: 'eyebrow' }, t('pr_n', { k: A.k + 1 }) + ' · ' + t('pr_kind_' + A.kind)), h('span', { style: 'flex:1' }),
+      h('button', { class: 'ghost small', onclick: () => leavePractice() }, t('close_x'))),
+    pips, title ? h('h2', null, title) : null, host));
+  return host;
+}
+function practiceItem() {
+  const A = PRAC; if (!A || A.over) return;
+  if (A.i >= A.words.length) return practiceEnd();
+  const it = A.words[A.i], my = ++A.token;
+  const next = (ok, typed) => {
+    if (A.token !== my || A.over) return;
+    A.token++; if (ok) A.right++;
+    practiceGrade(it, ok, A.kind, typed);
+    say('en', it.en);
+    setTimeout(() => { if (PRAC !== A) return; A.i++; practiceItem(); }, ok ? 700 : 1500);
+  };
+  const choice = (opts, correct, label = o => o) => h('div', { class: 'choices grid' }, opts.map(o => h('button', { class: 'choice', translate: 'no', lang: 'en', onclick: ev => {
+    if (A.token !== my) return;
+    ev.currentTarget.classList.add(o === correct ? 'right' : 'wrong');
+    if (o !== correct) [...ev.currentTarget.parentNode.children].find(b => b.textContent === label(correct)).classList.add('right');
+    next(o === correct);
+  } }, h('b', null, label(o)))));
+  const hear = () => listenRow(() => say('en', it.en), () => say('en', it.en, true));
+  if (A.kind === 'pick') {
+    const host = practiceShell(t('g_k_sound'));
+    mount(host, hear(), choice([it.en, ...soundAlikes(it.en)].sort(() => Math.random() - 0.5), it.en));
+    say('en', it.en);
+  } else if (A.kind === 'find') {
+    const c = A.L.chunks.find(x => it.en.includes(x)), at = it.en.indexOf(c);
+    const blanked = it.en.slice(0, at) + '_'.repeat(Math.max(1, c.length)) + it.en.slice(at + c.length);
+    const others = A.L.chunks.filter(x => x !== c).sort(() => Math.random() - 0.5).slice(0, 2);
+    const host = practiceShell(t('pr_find_q'));
+    mount(host, hear(), h('div', { class: 'word', translate: 'no', lang: 'en' }, blanked), choice([c, ...others].sort(() => Math.random() - 0.5), c));
+    say('en', it.en);
+  } else if (A.kind === 'type') {
+    const host = practiceShell(t('g_k_spell'));
+    const inp = input(v => { if (!v.trim() || A.token !== my) return; const ok = isRight(v, it.en); if (!ok) mount(host, letterDiff(it.en, v)); next(ok, v); });
+    mount(host, hear(), inp, h('div', { class: 'actions' }, primary(t('check'), () => inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))));
+    inp.focus(); say('en', it.en);
+  } else if (A.kind === 'say') {
+    const host = practiceShell(t('pr_say_q'));
+    const status = h('p', { class: 'note' }, t('g_say_now'));
+    const ear = EAR.listen(it.en, (ok, heard) => { if (A.token !== my) return; status.textContent = ok ? t('so_heard_ok') : heard ? t('heard', { w: heard }) : t('g_say_miss'); next(ok); },
+      () => { if (A.token !== my) return; A.kind = 'pick'; practiceItem(); });
+    setTimeout(() => { if (A.token !== my || A.over) return; ear.cancel(); status.textContent = t('g_say_miss'); next(false); }, 7000);
+    mount(host, wordBlock(it, true, false), status, h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'),
+      btn(t('skip'), () => { if (A.token !== my) return; ear.cancel(); next(false); }, 'ghost')));
+  } else {
+    /* quick ear: two choices, five seconds */
+    const host = practiceShell(t('pr_quick_q'));
+    const bar = h('div', { class: 'track' }, h('i', { style: 'width:100%' }));
+    mount(host, bar, hear(), choice([it.en, soundAlikes(it.en, 1)[0]].sort(() => Math.random() - 0.5), it.en));
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.firstChild.style.transition = 'width 5000ms linear'; bar.firstChild.style.width = '0%'; }));
+    setTimeout(() => { if (A.token !== my || A.over) return; next(false); }, 5000);
+    say('en', it.en);
+  }
+}
+function practiceEnd() {
+  const A = PRAC; A.over = true; EAR.stop();
+  const st = soundsState(), n = A.L.n;
+  const pass = A.right >= PRACTICE_PASS;
+  st.used[n] = A.words.map(w => w.id);
+  if (pass && (st.prac[n] || 0) === A.k) st.prac[n] = A.k + 1;
+  st.score[n] = Math.max(st.score[n] || 0, Math.round(100 * A.right / A.words.length));
+  const mastered = (st.prac[n] || 0) >= PRACTICE_N;
+  if (mastered && !st.done.includes(n)) { st.done.push(n); LOG.push({ t: Date.now(), kind: 'soundmastered', n }); }
+  LOG.push({ t: Date.now(), kind: 'soundpractice', n, k: A.k, kind2: A.kind, right: A.right, of: A.words.length, pass });
+  snapshot(); save(); syncNow(true);
+  const nextL = CONTENT.sounds.find(x => x.n === n + 1);
+  const passedNow = st.prac[n] || 0;
+  const home = () => { PRAC = null; document.body.classList.remove('running'); TAB = 'today'; render(); };
+  const host = practiceShell(null);
+  mount(host,
+    h('div', { class: 'pdots big' }, Array.from({ length: PRACTICE_N }, (_, i) => h('span', { class: 'pd' + (i < passedNow ? ' on' : '') }))),
+    h('h2', null, pass ? t('pr_pass', { a: A.right }) : t('pr_fail', { a: A.right })),
+    mastered && nextL ? h('p', { class: 'lead opened' }, t('pr_unlocked', { n, m: nextL.n })) : null,
+    h('div', { class: 'actions' },
+      btn(t('pr_home'), home, 'ghost'),
+      !pass ? primary(t('pr_again'), () => startPractice(n, A.k))
+        : mastered ? (nextL ? primary(t('pr_watch_next', { m: nextL.n }), () => { PRAC = null; startSoundLesson(nextL.n); }) : null)
+        : primary(t('pr_n', { k: passedNow + 1 }), () => startPractice(n, passedNow))));
+}
+function leavePractice() { if (PRAC) { PRAC.over = true; PRAC = null; } EAR.stop(); stopVoice(); document.body.classList.remove('running'); TAB = 'today'; render(); }

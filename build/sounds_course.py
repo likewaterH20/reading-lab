@@ -10,6 +10,18 @@
 CHANNEL = "EnglishAnyone"
 CHANNEL_URL = "https://www.youtube.com/@EnglishAnyone"
 CONSONANTS = "bcdfghjklmnpqrstvwxyz"
+CONS_NOY = "bcdfghjklmnpqrstvwxz"   # y is a vowel at the end of duty, city, lying
+# the sound chunks each lesson teaches, for the "find the sound" practice: a word from the
+# lesson with its chunk blanked, choose the chunk from three
+CHUNKS = {
+ 1: ["a", "e", "i", "o", "u"], 2: ["a", "e", "i", "o", "u"],
+ 3: ["bl", "br", "cl", "cr", "dr", "fl", "fr", "gl", "gr", "pl", "pr", "sk", "sl", "sm", "sn", "sp", "st", "sw", "tr"],
+ 4: ["ch", "sh", "th", "wh", "ph", "ck", "ng"],
+ 5: ["ai", "ay", "ee", "ea", "igh", "oa", "ue", "ew"],
+ 6: ["ar", "er", "ir", "or", "ur"],
+ 7: ["ai", "ay", "ee", "oa"], 8: ["ee", "ea", "ai", "oa"], 9: ["igh", "ee", "ai", "oa"],
+ 10: ["oa", "ee", "ai", "igh"], 11: ["ue", "ew", "oo", "ee"], 12: ["oi", "oy", "ou", "ow", "au", "aw", "oo"],
+}
 # words that look like a pattern but do not sound like it: never used as examples of a rule
 EXCEPT = set("""was her his for but says said give live love come some done one gone none have aisle were where there their
 great break steak been pretty busy women friend does goes shoe blood flood door floor poor your four our hour bread head dead
@@ -17,7 +29,7 @@ heavy weather sweater ready already instead health wealth death breath meant dea
 leather sure pure who whom whose two too through though thought tough rough cough enough laugh move prove lose whole only
 most both gold cold hold told sold post host ghost father water warm war want wash watch what wand swan quality sugar put
 push pull full bull bush could would should area idea again against any many body copy very every eye bye dye lie tie pie
-die key they obey grey prey hey eight weight neigh sleigh people police machine unique improve approve remove anyone everyone someone none above glove dove shove come become sex sexy damn hell ass""".split())
+die key they obey grey prey hey eight weight neigh sleigh people police machine unique improve approve remove anyone everyone someone none above glove dove shove come become from front son won ton month sex sexy damn hell ass""".split())
 
 def spread(letters, t0, t1):
     n = len(letters); step = (t1 - t0) / n
@@ -26,7 +38,7 @@ def spread(letters, t0, t1):
 LESSONS = [
  {"n": 1, "id": "NzHVmX1pnc8", "duration": 369, "title": "The alphabet and letter sounds",
   "es": "El alfabeto y los sonidos de las letras",
-  "pattern": "^[%s]{1,2}[aeiou](?![rwy])[%s]{1,2}$" % (CONSONANTS, CONSONANTS),
+  "pattern": "^[%s]{1,2}[aeiou](?![rwy])[%s]{1,2}$" % (CONS_NOY, CONS_NOY),
   "pattern_name": {"en": "short vowel words", "es": "palabras con vocal corta"}, "tip": {"en": "In Spanish every letter has one sound. In English the same letter changes sound by its neighbours. Learn the sounds, not the names.", "es": "En español cada letra tiene un sonido. En inglés la misma letra cambia según sus vecinas. Aprende los sonidos, no los nombres."},
   "blocks": [
    {"t": 0, "end": 118, "kind": "intro", "en": "Letters change their sound. The 26 letters make more than 40 sounds. This series teaches the rules, and the words that break them.",
@@ -46,7 +58,7 @@ LESSONS = [
    {"t": 358, "end": 369, "kind": "intro", "en": "Lesson 2 builds words from these sounds.", "es": "La lección 2 arma palabras con estos sonidos."},
   ]},
  {"n": 2, "id": "-LVabbIvDcc", "duration": 154, "title": "Three-letter words (CVC)", "es": "Palabras de tres letras",
-  "pattern": "^[%s][aeiou](?![rwy])[%s]$" % (CONSONANTS, CONSONANTS), "pattern_name": {"en": "three-letter words", "es": "palabras de tres letras"}, "tip": {"en": "Short vowels are relaxed and quick. Spanish vowels are pure and tense: bit is not beat, cut is not coot.", "es": "Las vocales cortas son relajadas y rápidas. Las del español son puras y tensas: bit no es beat, cut no es coot."},
+  "pattern": "^[%s][aeiou](?![rwy])[%s]$" % (CONS_NOY, CONS_NOY), "pattern_name": {"en": "three-letter words", "es": "palabras de tres letras"}, "tip": {"en": "Short vowels are relaxed and quick. Spanish vowels are pure and tense: bit is not beat, cut is not coot.", "es": "Las vocales cortas son relajadas y rápidas. Las del español son puras y tensas: bit no es beat, cut no es coot."},
   "blocks": [{"t": 0, "end": 16, "kind": "intro", "en": "Intro. Repeat every word after him.", "es": "Introducción. Repite cada palabra después de él."}, {"t": 16, "end": 64, "kind": "rule", "en": "Building Simple Words. Repeat every word after him.", "es": "Armar palabras simples. Repite cada palabra después de él."}, {"t": 64, "end": 154, "kind": "rule", "en": "Learning Simple Words. Repeat every word after him.", "es": "Aprender palabras simples. Repite cada palabra después de él."}]},
  {"n": 3, "id": "sB2-mFb_O0E", "duration": 113, "title": "Consonant blends", "es": "Grupos de consonantes",
   "pattern": "^(bl|br|cl|cr|dr|fl|fr|gl|gr|pl|pr|sc|sk|sl|sm|sn|sp|st|sw|tr|tw)", "pattern_name": {"en": "words that start with a blend", "es": "palabras que empiezan con dos consonantes"}, "tip": {"en": "Spanish never starts a word with s plus a consonant (it says es-). In English stop, speak, small start on the s, no e before it.", "es": "El español nunca empieza con s más consonante (dice es-). En inglés stop, speak, small empiezan en la s, sin e delante."},
