@@ -1332,30 +1332,23 @@ function progressScreen() {
   /* forecast from the last 7 practice days */
   const recent = keys.slice(-7);
   const perDay = recent.length > 1 ? (DAYS[recent[recent.length - 1]].owned - DAYS[recent[0]].owned) / (recent.length - 1) : 0;
-  const cv = CONTENT.coverage;
+  /* simple (his 10/30 word): three numbers, one line, one sentence */
+  const all = LOG.filter(x => x.kind === 'read');
+  const oralMode = all.some(x => x.mode === 'oral');
+  const reads = all.filter(x => (x.mode || 'silent') === (oralMode ? 'oral' : 'silent'));
+  const sounds = (P.sounds && P.sounds.done || []).length;
+  const line = reads.length > 1
+    ? [h('div', { class: 'eyebrow' }, t('p_speed')), lineChart(reads.map(x => x.speed || x.wpm), v => Math.round(v) + ' ' + t(oralMode ? 'rd_wcpm' : 'rd_wpm'))]
+    : owns.length > 1 ? [h('div', { class: 'eyebrow' }, t('owned')), lineChart(owns, v => String(Math.round(v)))] : null;
+  const sentence = perDay > 0 ? t('p_forecast', { n: Math.round(perDay * 30) }) : writes.length >= 10 && acc(lastHalf) > acc(firstHalf) ? t('p_write') + ': ' + acc(firstHalf) + '% → ' + acc(lastHalf) + '%' : t('p_sessions_n', { n: keys.length });
   screen(
     h('div', { class: 'card' },
-      h('div', { class: 'eyebrow' }, t('p_cov')),
-      h('div', { class: 'stat big' }, h('b', null, pct(coverage()) + '%'), h('span', null, t('cov_label'))),
-      covs.length > 1 ? lineChart(covs, v => pct(v) + '%') : h('p', { class: 'note' }, t('p_empty')),
-      h('p', { class: 'note' }, t('p_cov_sub', { a: pct(cv.top100, 0), b: pct(cv.top1000, 0) }))),
-    h('div', { class: 'card' },
-      h('div', { class: 'eyebrow' }, t('owned')),
-      h('div', { class: 'stat big' }, h('b', null, String(ownedIds().length)), h('span', null, t('owned'))),
-      owns.length > 1 ? lineChart(owns, v => String(Math.round(v))) : null,
-      perDay > 0 ? h('p', { class: 'note' }, t('p_forecast', { n: Math.round(perDay * 30) })) : null),
-    h('div', { class: 'card two' },
-      h('div', null, h('div', { class: 'eyebrow' }, t('p_write')),
-        writes.length ? h('div', { class: 'fromto' },
-          h('div', { class: 'stat' }, h('b', null, acc(firstHalf) + '%'), h('span', null, t('p_first'))),
-          h('div', { class: 'stat' }, h('b', null, acc(lastHalf) + '%'), h('span', null, t('p_now')))) : h('p', { class: 'note' }, t('p_empty'))),
-      h('div', null, h('div', { class: 'eyebrow' }, t('p_melody')),
-        mels.length ? h('div', { class: 'fromto' },
-          h('div', { class: 'stat' }, h('b', null, mels[0] + '%'), h('span', null, t('p_first'))),
-          h('div', { class: 'stat' }, h('b', null, Math.max(...mels.slice(-10)) + '%'), h('span', null, t('p_now')))) : h('p', { class: 'note' }, t('p_empty')))),
-    weeklyReport(),
-    readingCard(),
-    h('p', { class: 'note' }, keys.length + ' ' + t('p_sessions')));
+      h('div', { class: 'hero' },
+        h('div', { class: 'stat big' }, h('b', null, P.grade + ' / ' + NLEV), h('span', null, t('p_grade'))),
+        h('div', { class: 'stat big' }, h('b', null, sounds + ' / ' + CONTENT.sounds.length), h('span', null, t('p_sounds'))),
+        h('div', { class: 'stat big' }, h('b', null, String(ownedIds().length)), h('span', null, t('owned')))),
+      line,
+      h('p', { class: 'note' }, sentence)));
 }
 /* reading level and speed, one point per reading test */
 function readingCard() {

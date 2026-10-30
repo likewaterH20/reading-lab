@@ -101,6 +101,8 @@ UI = {
  "lv_current":  {"en": "your level", "es": "tu nivel"},
  "lv_play":     {"en": "Start today's practice", "es": "Empezar la práctica de hoy"},
  "lv_replay":   {"en": "Practice this level again", "es": "Practicar este nivel otra vez"},
+ "p_sounds":    {"en": "sound lessons", "es": "lecciones de sonidos"},
+ "p_sessions_n": {"en": "{n} days of practice so far.", "es": "{n} días de práctica hasta ahora."},
  "lv_how":      {"en": "Hear each word, say it, write it. Then read a short text against the clock. This is where speed and pronunciation grow.", "es": "Escucha cada palabra, dila, escríbela. Luego lee un texto corto contra el reloj. Aquí crecen la velocidad y la pronunciación."},
  "lv_1":  {"en": "Short everyday sentences", "es": "Frases cortas del día a día"},
  "lv_2":  {"en": "Notes and simple instructions", "es": "Notas e instrucciones sencillas"},
