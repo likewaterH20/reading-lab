@@ -59,10 +59,8 @@ function render() {
   mount(nav, P && !inRun ? [
     ['today', 'tab_today'], ['words', 'tab_words'], ['progress', 'tab_progress']
   ].map(([id, key]) => h('button', { class: 'tab' + (TAB === id ? ' on' : ''), onclick: () => { TAB = id; render(); } }, t(key))) : null);
-  /* sound off (a muted test URL or the Profile toggle) is shown, never silent: one tap turns it back on */
-  const soundIsOff = MUTED() || store.get('soundOff', false);
+  /* no app-wide sound on/off (his 10/31 word): volume lives on the video */
   mount($('#meta'), P && !inRun ? [
-    soundIsOff ? h('button', { class: 'ghost small warn', onclick: () => { try { localStorage.removeItem('rl.mute'); } catch {} store.set('soundOff', false); if (VOICE.el) VOICE.el.muted = false; render(); say('en', 'Sound is on.'); } }, t('sound_off_pill')) : null,
     h('span', { class: 'day' }, t('day') + ' ' + dayNumber() + ' · ' + gradeName(P.grade)),
     h('button', { class: 'ghost small pf', onclick: openProfile, 'aria-label': t('profile') },
       s('svg', { viewBox: '0 0 24 24', width: 18, height: 18, 'aria-hidden': 'true' },
@@ -1470,7 +1468,6 @@ async function micTest() {
 function openProfile() {
   const close = () => { dlg.remove(); render(); };
   const opt = (label, on, fn) => h('button', { class: 'chip' + (on ? ' on' : ''), onclick: () => { fn(); save(); dlg.remove(); openProfile(); } }, label);
-  const soundOff = store.get('soundOff', false);
   const dlg = h('div', { class: 'overlay', onclick: e => { if (e.target === dlg) close(); } },
     h('div', { class: 'panel' },
       h('div', { class: 'row between' }, h('h2', null, t('profile')), btn(t('close_x'), close, 'ghost small')),
@@ -1484,8 +1481,6 @@ function openProfile() {
         const i = P.inds.indexOf(ind.id);
         if (i >= 0) P.inds.splice(i, 1); else { P.inds.push(ind.id); if (P.inds.length > 2) P.inds.shift(); }
       }))),
-      h('div', { class: 'eyebrow' }, t('pf_sound')),
-      h('div', { class: 'row' }, opt(t('pf_on'), !soundOff, () => store.set('soundOff', false)), opt(t('pf_off'), soundOff, () => store.set('soundOff', true))),
       P.coach ? h('p', { class: 'note' }, t('nm_shared', { n: P.name })) : null,
       h('div', { class: 'eyebrow' }, t('mt_title')),
       h('div', { class: 'row' }, btn(t('mt_go'), () => { dlg.remove(); micTest(); }, 'ghost small')),
@@ -1498,6 +1493,8 @@ function openProfile() {
 
 /* ============================ BOOT ============================ */
 if (Q.has('reset')) { store.wipe(); P = null; CARDS = {}; LOG = []; DAYS = {}; SEEN = {}; }
+/* the old app-wide Sound off switch is gone: nobody stays silenced by a choice they can no longer see */
+try { if (store.get('soundOff', false)) store.set('soundOff', false); } catch {}
 if (P) {
   P.grade = P.grade || 1; P.passed = P.passed || {};
   P.inds = (P.inds || []).filter(id => CONTENT.industries.some(x => x.id === id));

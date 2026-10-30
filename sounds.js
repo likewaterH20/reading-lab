@@ -130,6 +130,19 @@ function soundLessonScreen() {
   const setRate = r => { P.soundsRate = r; save(); if (S.ready) S.yt.setPlaybackRate(r); rateN.classList.toggle('on', r === RATES.normal); rateF.classList.toggle('on', r === RATES.fast); };
   const rateN = btn(t('so_speed_n'), () => setRate(RATES.normal), 'ghost small');
   const rateF = btn(t('so_speed_f'), () => setRate(RATES.fast), 'ghost small');
+  /* volume by the video (his 10/31 word): a speaker to mute, a slider for the level.
+     An iPhone ignores page volume (the side buttons rule), so there it is mute only. */
+  const vol = P.soundsVol == null ? 100 : P.soundsVol;
+  const spk = muted => s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, 'aria-hidden': 'true' },
+    s('path', { d: 'M4 9h4l5-4v14l-5-4H4z', fill: 'currentColor' }),
+    muted ? s('path', { d: 'M16 9l5 6M21 9l-5 6', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', fill: 'none' })
+          : s('path', { d: 'M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12', stroke: 'currentColor', 'stroke-width': 1.8, fill: 'none', 'stroke-linecap': 'round' }));
+  const muteBtn = h('button', { class: 'ghost small vmute', 'aria-label': t('vol_mute') });
+  const slider = IOS ? null : h('input', { type: 'range', class: 'vslider', min: 0, max: 100, step: 5, value: vol, 'aria-label': t('vol_level') });
+  const setMute = m => { P.soundsMuted = m; save(); mount(muteBtn, spk(m)); muteBtn.classList.toggle('on', m); if (S.ready) { m ? S.yt.mute() : S.yt.unMute(); } };
+  muteBtn.onclick = () => setMute(!P.soundsMuted);
+  if (slider) slider.oninput = () => { const v = +slider.value; P.soundsVol = v; save(); if (S.ready) S.yt.setVolume(v); if (v > 0 && P.soundsMuted) setMute(false); };
+  mount(muteBtn, spk(!!P.soundsMuted));
   const live = h('div', { class: 'card' });
   const coachEl = h('div', { class: 'coachbox', hidden: true });
   const finish = primary(t('so_finish'), () => finishSoundLesson());
@@ -148,7 +161,7 @@ function soundLessonScreen() {
     h('h2', null, P.lang === 'es' ? L.es : L.title),
     box, track,
     /* minimal (his 10/31 word): tap the video to play or pause; no Play / −5 / +5 buttons */
-    h('div', { class: 'vctl' }, rateN, rateF, loopBtn, coachBtn, timeEl),
+    h('div', { class: 'vctl' }, h('span', { class: 'vvol' }, muteBtn, slider), rateN, rateF, loopBtn, coachBtn, timeEl),
     live, coachEl,
     h('div', { class: 'actions' }, finish),
     blocksCard, tipsCard));
@@ -232,7 +245,8 @@ function soundLessonScreen() {
           /* YouTube's own captions stay off; the app's cards do the teaching (his 10/30 word) */
           try { S.yt.unloadModule('captions'); S.yt.unloadModule('cc'); } catch {}
           S.yt.setPlaybackRate(P.soundsRate || 1.25);
-          if (MUTED() || store.get('soundOff', false)) S.yt.mute();
+          S.yt.setVolume(P.soundsVol == null ? 100 : P.soundsVol);
+          if (MUTED() || P.soundsMuted) S.yt.mute(); else S.yt.unMute();
           const resume = st.pos[L.n]; if (resume > 10 && resume < L.duration - 15) seek(resume);
         },
         onStateChange: e => {

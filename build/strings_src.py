@@ -205,6 +205,8 @@ UI = {
  "so_step_watch": {"en": "Watch", "es": "Mira"},
  "so_step_practice": {"en": "Practise 5 times", "es": "Practica 5 veces"},
  "so_watch_again": {"en": "Watch again", "es": "Ver otra vez"},
+ "vol_mute":    {"en": "Mute the video", "es": "Silenciar el video"},
+ "vol_level":   {"en": "Video volume", "es": "Volumen del video"},
  "type_here":   {"en": "Tap here and type", "es": "Toca aquí y escribe"},
  "tap_say":     {"en": "Tap, then say it", "es": "Toca y dila"},
  "pr_n":        {"en": "Practice {k} of 5", "es": "Práctica {k} de 5"},
