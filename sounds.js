@@ -99,10 +99,10 @@ function soundLessonScreen() {
   const timeEl = h('span', { class: 'vtime' }, '0:00 / ' + fmtTime(L.duration));
   const playBtn = btn(t('so_play'), () => toggle(), 'ghost');
   const loopBtn = btn(t('so_loop'), () => toggleLoop(), 'ghost');
-  const coachBtn = btn(t('so_coach_on'), () => { S.coach = !S.coach; coachBtn.classList.toggle('primary', S.coach); }, 'ghost' + (S.coach ? ' primary' : ''));
+  const coachBtn = btn(t('so_coach_on'), () => { S.coach = !S.coach; coachBtn.classList.toggle('on', S.coach); }, 'ghost' + (S.coach ? ' on' : ''));
   /* two speeds, and the lesson starts at the faster-than-normal one (his word: "this video is a little slow") */
   const RATES = { normal: 1.25, fast: 1.5 };
-  const setRate = r => { P.soundsRate = r; save(); if (S.ready) S.yt.setPlaybackRate(r); rateN.classList.toggle('primary', r === RATES.normal); rateF.classList.toggle('primary', r === RATES.fast); };
+  const setRate = r => { P.soundsRate = r; save(); if (S.ready) S.yt.setPlaybackRate(r); rateN.classList.toggle('on', r === RATES.normal); rateF.classList.toggle('on', r === RATES.fast); };
   const rateN = btn(t('so_speed_n'), () => setRate(RATES.normal), 'ghost small');
   const rateF = btn(t('so_speed_f'), () => setRate(RATES.fast), 'ghost small');
   const live = h('div', { class: 'card' });
@@ -135,9 +135,9 @@ function soundLessonScreen() {
   const seek = s => { if (!S.ready) return; s = Math.max(0, Math.min(dur(), s)); S.yt.seekTo(s, true); onTime(s); };
   const toggle = () => { if (!S.ready) return; coachEl.hidden = true; S.yt.getPlayerState() === 1 ? S.yt.pauseVideo() : S.yt.playVideo(); };
   const toggleLoop = () => {
-    if (S.loop) { S.loop = null; loopBtn.classList.remove('primary'); return; }
+    if (S.loop) { S.loop = null; loopBtn.classList.remove('on'); return; }
     const b = S.cur; if (!b) return;
-    S.loop = { a: b.t, b: b.end }; loopBtn.classList.add('primary'); seek(b.t); S.yt.playVideo();
+    S.loop = { a: b.t, b: b.end }; loopBtn.classList.add('on'); seek(b.t); S.yt.playVideo();
   };
   function onState(playing, ended) {
     box.classList.toggle('playing', playing);
