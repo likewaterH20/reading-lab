@@ -169,7 +169,7 @@ UI = {
  "g_ghost":     {"en": "Your record run: {n} by now", "es": "Tu récord iba en {n} a esta altura"},
  "g_say_now":   {"en": "Say it now.", "es": "Dila ahora."},
  "g_say_miss":  {"en": "Did not catch it. Next.", "es": "No se escuchó. Siguiente."},
- "sound_off_pill": {"en": "Sound is off · turn on", "es": "Sin sonido · activar"},
+ "sound_off_pill": {"en": "Sound off", "es": "Sin sonido"},
  "so_title":    {"en": "The Sounds of English", "es": "Los sonidos del inglés"},
  "so_sub":      {"en": "12 short video lessons. Start here, in order.", "es": "12 lecciones cortas en video. Empieza aquí, en orden."},
  "so_lesson":   {"en": "Lesson {n} of 12", "es": "Lección {n} de 12"},
