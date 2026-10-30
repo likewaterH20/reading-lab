@@ -7,48 +7,19 @@
 <title>Reading Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&family=Instrument+Sans:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* warm paper, friendly and light (his 10/29 word: "more friendly or inviting"): one teal-green accent, white cards */
-  --bg: #faf6ee; --panel: #ffffff; --panel-2: #f1ece1; --line: #e3dccd;
-  --text: #1f1d19; --muted: #6f6a60; --accent: #0f8f84; --accent-ink: #ffffff;
-  --miss: #d0442f; --gap: 16px; --r: 12px;
-  --glow: rgba(15, 143, 132, .10); --shadow: 0 10px 24px -18px rgba(60, 45, 20, .35);
+  /* chalk: a deep green board, chalk-white text, one amber accent (his pick 10/30: "i like the green and yellow") */
+  --bg: #10211c; --panel: #17302a; --panel-2: #1f3d35; --line: #2c4d44;
+  --text: #f4efe4; --muted: #a7b8b0; --accent: #f2b64c; --accent-ink: #1a1405;
+  --miss: #ff8d78; --gap: 16px; --r: 12px;
+  --glow: rgba(242, 182, 76, .10); --shadow: 0 16px 36px -24px rgba(0, 0, 0, .7);
   --serif: "Instrument Sans", system-ui, -apple-system, sans-serif;
   /* anything you read, type or spell: a face built so letters cannot be confused */
   --read: "Atkinson Hyperlegible", "Instrument Sans", system-ui, sans-serif;
-  --reading: #23211c;
+  --reading: #efe9da;
   --sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
-  color-scheme: light;
-}
-/* candidate looks, picked by him (10/30): chalk, sunlit, dusk, sea */
-:root[data-theme="chalk"] {
-  --bg: #10211c; --panel: #17302a; --panel-2: #1f3d35; --line: #2c4d44;
-  --text: #f4efe4; --muted: #a7b8b0; --accent: #f2b64c; --accent-ink: #1a1405;
-  --miss: #ff8d78; --reading: #efe9da; --glow: rgba(242, 182, 76, .12); --shadow: 0 16px 36px -24px rgba(0, 0, 0, .7); color-scheme: dark;
-}
-:root[data-theme="sunlit"] {
-  --bg: #fff4e3; --panel: #ffffff; --panel-2: #ffe8cc; --line: #f0d7b6;
-  --text: #2b1d12; --muted: #7d6553; --accent: #e0632f; --accent-ink: #ffffff;
-  --miss: #c2362a; --reading: #2b1d12; --glow: rgba(224, 99, 47, .12); --shadow: 0 12px 28px -18px rgba(120, 70, 20, .35); color-scheme: light;
-}
-:root[data-theme="dusk"] {
-  --bg: #eeeaf6; --panel: #ffffff; --panel-2: #e2dbf1; --line: #d2c8e8;
-  --text: #241a3a; --muted: #6c6185; --accent: #6b4ce6; --accent-ink: #ffffff;
-  --miss: #d84a6b; --reading: #241a3a; --glow: rgba(107, 76, 230, .12); --shadow: 0 12px 28px -18px rgba(60, 40, 120, .35); color-scheme: light;
-}
-:root[data-theme="sea"] {
-  --bg: #f4ecdd; --panel: #fffdf7; --panel-2: #e9e0cc; --line: #d9ceb6;
-  --text: #15243b; --muted: #5f6a7d; --accent: #1f6fb2; --accent-ink: #ffffff;
-  --miss: #c74a3a; --reading: #15243b; --glow: rgba(31, 111, 178, .12); --shadow: 0 12px 28px -18px rgba(20, 40, 80, .35); color-scheme: light;
-}
-/* dark stays available on request (data-theme="dark"): ink and paper */
-:root[data-theme="dark"] {
-  --bg: #0e1216; --panel: #161b21; --panel-2: #1e242b; --line: #29313a;
-  --text: #f1ebdf; --muted: #9c9a90; --accent: #1cbdb4; --accent-ink: #05211f;
-  --miss: #ff8a75; --reading: #e7e5df;
-  --glow: rgba(28, 189, 180, .16); --shadow: 0 18px 40px -24px rgba(0, 0, 0, .8);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -56,7 +27,6 @@ html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.
 /* the ground: a teal lamp at the top edge and a faint paper grain */
 body { background: radial-gradient(900px 420px at 18% -10%, var(--glow), transparent 70%), var(--bg); min-height: 100vh; }
 /* the paper grain only on the dark theme; the light theme stays clean */
-:root:not([data-theme="dark"]) body::before { display: none; }
 body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
 header, main { position: relative; z-index: 1; }
