@@ -24,6 +24,9 @@ h1 { font-size: 26px; margin: 0; } h2 { font-size: 22px; margin: 0; }
 .focus { border-left: 3px solid var(--accent); padding-left: 10px; margin: 0; }
 svg { width: 100%; height: 70px; } svg path { fill: none; stroke: var(--accent); stroke-width: 2.5; } svg text { fill: var(--muted); font-size: 11px; }
 .ago.stale { color: var(--miss); }
+.today { font-size: 20px; font-weight: 700; } .today.ok { color: var(--accent); } .today.no { color: var(--text); }
+svg.bars { height: 90px; } svg.bars rect.hit { fill: var(--accent); } svg.bars rect.miss { fill: var(--panel-2); }
+svg.bars line.goal { stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1; } svg.bars text { fill: var(--muted); font-size: 11px; }
 .rm { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
 @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
@@ -32,7 +35,7 @@ svg { width: 100%; height: 70px; } svg path { fill: none; stroke: var(--accent);
 <main id="app"><p class="note">Loading…</p></main>
 <script>
 /* The coach view. Open as coach.html#<coach>:<key>. The key never leaves the browser except to the sync worker. */
-const SYNC_URL = '';   // same address as in app.js
+const SYNC_URL = 'https://reading-lab-sync.likewater.workers.dev';
 const app = document.getElementById('app');
 const el = (tag, cls, ...kids) => { const n = document.createElement(tag); if (cls) n.className = cls; for (const k of kids.flat()) if (k != null) n.append(k.nodeType ? k : String(k)); return n; };
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago'; };
@@ -45,6 +48,27 @@ function line(vals) {
   for (const [i, v] of [[0, vals[0]], [vals.length - 1, vals[vals.length - 1]]]) { const tx = document.createElementNS(ns, 'text'); tx.setAttribute('x', pts[i][0] - (i ? 24 : 0)); tx.setAttribute('y', pts[i][1] - 6); tx.textContent = v; svg.append(tx); }
   return svg;
 }
+/* the 10-minute goal (his 10/31 word: "i jsut want to be able to know if hes using the app 10mins a day") */
+const GOAL = 10;
+function minutesBlock(d) {
+  const days = (d.minutes || []).slice(-7);
+  if (!days.length) return null;
+  const todayM = days[days.length - 1].m, hit = days.filter(x => x.m >= GOAL).length;
+  const max = Math.max(GOAL * 1.5, ...days.map(x => x.m));
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 300 90'); svg.classList.add('bars');
+  days.forEach((x, i) => {
+    const h = Math.max(2, 64 * x.m / max), r = document.createElementNS(ns, 'rect');
+    r.setAttribute('x', 8 + i * 42); r.setAttribute('y', 70 - h); r.setAttribute('width', 30); r.setAttribute('height', h); r.setAttribute('rx', 4);
+    r.setAttribute('class', x.m >= GOAL ? 'hit' : 'miss'); svg.append(r);
+    const lb = document.createElementNS(ns, 'text'); lb.setAttribute('x', 23 + i * 42); lb.setAttribute('y', 86); lb.setAttribute('text-anchor', 'middle');
+    lb.textContent = new Date(x.d + 'T12:00').toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2); svg.append(lb);
+    const v = document.createElementNS(ns, 'text'); v.setAttribute('x', 23 + i * 42); v.setAttribute('y', 66 - h); v.setAttribute('text-anchor', 'middle'); v.textContent = x.m; svg.append(v);
+  });
+  const gy = 70 - 64 * GOAL / max, g = document.createElementNS(ns, 'line');
+  g.setAttribute('x1', 4); g.setAttribute('x2', 296); g.setAttribute('y1', gy); g.setAttribute('y2', gy); g.setAttribute('class', 'goal'); svg.append(g);
+  return [el('div', 'today ' + (todayM >= GOAL ? 'ok' : 'no'), 'Today: ' + todayM + ' min ' + (todayM >= GOAL ? '✓ goal met' : '· goal ' + GOAL)),
+          svg, el('p', 'note', hit + ' of the last ' + days.length + ' days at ' + GOAL + ' minutes or more')];
+}
 function learnerCard(L) {
   const d = L.data || {};
   /* one dot per sound lesson: amber = all five practices passed, outlined = in progress (n/5) */
@@ -56,6 +80,7 @@ function learnerCard(L) {
   const stale = Date.now() - (d.lastActive || L.updated) > 3 * 864e5;
   return el('div', 'card',
     el('div', 'row', el('h2', null, L.name), el('span', 'note ago' + (stale ? ' stale' : ''), 'last practice ' + ago(d.lastActive || L.updated))),
+    minutesBlock(d),
     el('div', 'stats',
       el('div', 'stat', el('b', null, d.level + ' / ' + (d.of || 13)), el('span', null, 'reading level' + (d.placed ? ' (started ' + d.placed + ')' : ''))),
       el('div', 'stat', el('b', null, (d.soundsDone || 0) + ' / 12'), el('span', null, 'sound lessons')),
@@ -84,7 +109,7 @@ async function removeLearner(L) {
     const { learners } = await r.json();
     app.replaceChildren(el('h1', null, 'Your learners'),
       el('p', 'note', learners.length ? 'Newest activity first. Refresh to update.' : 'Nobody yet. Send the learner link; they appear after their first session.'),
-      learners.map(learnerCard));
+      ...learners.map(learnerCard));   // spread: native replaceChildren prints an array as "[object ...]"
   } catch (e) { app.replaceChildren(el('p', 'note', 'Could not reach the server.')); }
 })();
 </script>

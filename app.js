@@ -1395,7 +1395,7 @@ function readingCard() {
    track his progress on my side". Only a learner who opened a coach link (?coach=id)
    and gave a name sends anything: a small summary after each session, to the coach's
    Cloudflare worker. No audio, no typed sentences. The coach reads it on coach.html. */
-const SYNC_URL = '';   // set once the worker has an address
+const SYNC_URL = 'https://reading-lab-sync.likewater.workers.dev';
 try {
   const c = Q.get('coach'), k = Q.get('k');
   if (c && /^[a-z0-9-]{2,40}$/.test(c)) localStorage.setItem('rl.coach', c);
@@ -1403,6 +1403,24 @@ try {
 } catch {}
 const COACH = () => { try { return localStorage.getItem('rl.coach'); } catch { return null; } };
 let lastSync = 0;
+/* ACTIVE MINUTES (his 10/31 word: "i jsut want to be able to know if hes using the app 10mins a day"):
+   a second counts when the app is on screen AND the learner touched, typed or scrolled in the
+   last minute, or a lesson video / the voice is playing. A phone left open on the table stops
+   counting after a minute. Stored per local day in DAYS[day].sec. */
+let lastInput = 0;
+for (const ev of ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll']) addEventListener(ev, () => { lastInput = Date.now(); }, { passive: true, capture: true });
+const mediaPlaying = () => (typeof SOUND !== 'undefined' && SOUND && SOUND.ready && SOUND.yt && SOUND.yt.getPlayerState && SOUND.yt.getPlayerState() === 1) || (VOICE.el && !VOICE.el.paused);
+let activeTick = 0;
+setInterval(() => {
+  if (!P || document.visibilityState !== 'visible') return;
+  if (Date.now() - lastInput > 60000 && !mediaPlaying()) return;
+  const d = today(); DAYS[d] = DAYS[d] || { n: 0, first: 0, graded: 0, mel: [] };
+  DAYS[d].sec = (DAYS[d].sec || 0) + 5;
+  if (++activeTick % 6 === 0) save();                 // every 30 s
+  if (activeTick % 60 === 0) syncNow(true);           // every 5 active minutes, so the coach sees today live
+}, 5000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && P) { save(); syncNow(true); } });
+const minutesOn = d => Math.round(((DAYS[d] && DAYS[d].sec) || 0) / 60);
 function syncSummary() {
   const reads = LOG.filter(x => x.kind === 'read' && x.speed);
   const says = LOG.filter(x => x.kind === 'say' && x.share != null).slice(-30);
@@ -1415,7 +1433,9 @@ function syncSummary() {
     bestSpeed: reads.length ? Math.max(...reads.map(x => x.speed)) : null,
     reads: reads.slice(-10).map(x => ({ t: x.t, speed: x.speed, target: x.target, pass: !!x.pass, level: x.grade })),
     sayRight: says.length ? Math.round(100 * says.reduce((p, x) => p + x.share, 0) / says.length) : null,
-    answersToday: todayLog.filter(x => x.g != null).length, minutesToday: Math.round(todayLog.length * 0.25),
+    answersToday: todayLog.filter(x => x.g != null).length, minutesToday: minutesOn(todayKey),
+    /* the last 14 local days, real active minutes */
+    minutes: Array.from({ length: 14 }, (_, i) => { const d = today(new Date(Date.now() - (13 - i) * 864e5)); return { d, m: minutesOn(d) }; }),
     focus: weak.map(w => w === 'spelling' && pat ? t('fx_spelling_' + pat) : t('fx_' + w)),
     stumbles: topStumbles(6).map(it => it.en), lastActive: LOG.length ? LOG[LOG.length - 1].t : P.created,
   };
