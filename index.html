@@ -223,6 +223,11 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); }
 .letters span.past { color: var(--text); }
 .coachbox { border-left: 3px solid var(--accent); padding-left: 14px; display: flex; flex-direction: column; gap: 10px; }
 .wrow.now { box-shadow: inset 3px 0 0 var(--accent); }
+.lessons { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.lnum { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--muted); font-weight: 700; }
+.lnum.done { background: var(--panel-2); color: var(--text); border-color: transparent; }
+.lnum.next { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.lnum:disabled { opacity: .35; cursor: default; }
 .blocklist .wrow { grid-template-columns: 48px minmax(0, 1fr); }
 .blocklist .wrow .g { white-space: normal; overflow: visible; }
 .wrow.now .g { color: var(--text); }

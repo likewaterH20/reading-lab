@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reading Lab · Coach</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #10211c; --panel: #17302a; --panel-2: #1f3d35; --line: #2c4d44; --text: #f4efe4; --muted: #a7b8b0; --accent: #f2b64c; --miss: #ff8d78; --r: 12px; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 "Atkinson Hyperlegible", system-ui, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 26px; margin: 0; } h2 { font-size: 22px; margin: 0; }
+.note { color: var(--muted); margin: 0; font-size: 15px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.stat b { display: block; font-size: 24px; letter-spacing: -.02em; }
+.stat span { color: var(--muted); font-size: 13px; }
+.dots { display: flex; gap: 6px; flex-wrap: wrap; }
+.dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--panel-2); color: var(--muted); }
+.dot.pass { background: var(--accent); color: #1a1405; } .dot.weak { background: var(--miss); color: #1a1405; }
+.focus { border-left: 3px solid var(--accent); padding-left: 10px; margin: 0; }
+svg { width: 100%; height: 70px; } svg path { fill: none; stroke: var(--accent); stroke-width: 2.5; } svg text { fill: var(--muted); font-size: 11px; }
+.ago.stale { color: var(--miss); }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<main id="app"><p class="note">Loading…</p></main>
+<script>
+/* The coach view. Open as coach.html#<coach>:<key>. The key never leaves the browser except to the sync worker. */
+const SYNC_URL = '';   // same address as in app.js
+const app = document.getElementById('app');
+const el = (tag, cls, ...kids) => { const n = document.createElement(tag); if (cls) n.className = cls; for (const k of kids.flat()) if (k != null) n.append(k.nodeType ? k : String(k)); return n; };
+const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago'; };
+function line(vals) {
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', '0 0 300 70');
+  if (vals.length < 2) return null;
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const pts = vals.map((v, i) => [10 + i * 280 / (vals.length - 1), 58 - (v - lo) / span * 46]);
+  const p = document.createElementNS(ns, 'path'); p.setAttribute('d', 'M' + pts.map(x => x.join(',')).join(' L')); svg.append(p);
+  for (const [i, v] of [[0, vals[0]], [vals.length - 1, vals[vals.length - 1]]]) { const tx = document.createElementNS(ns, 'text'); tx.setAttribute('x', pts[i][0] - (i ? 24 : 0)); tx.setAttribute('y', pts[i][1] - 6); tx.textContent = v; svg.append(tx); }
+  return svg;
+}
+function learnerCard(L) {
+  const d = L.data || {};
+  const dots = el('div', 'dots', Array.from({ length: 12 }, (_, i) => { const n = i + 1, s = (d.soundScores || {})[n]; return el('span', 'dot' + (s >= 80 ? ' pass' : s != null ? ' weak' : ''), n); }));
+  const speeds = (d.reads || []).map(r => r.speed);
+  const stale = Date.now() - (d.lastActive || L.updated) > 3 * 864e5;
+  return el('div', 'card',
+    el('div', 'row', el('h2', null, L.name), el('span', 'note ago' + (stale ? ' stale' : ''), 'last practice ' + ago(d.lastActive || L.updated))),
+    el('div', 'stats',
+      el('div', 'stat', el('b', null, d.level + ' / ' + (d.of || 13)), el('span', null, 'reading level' + (d.placed ? ' (started ' + d.placed + ')' : ''))),
+      el('div', 'stat', el('b', null, (d.soundsDone || 0) + ' / 12'), el('span', null, 'sound lessons')),
+      el('div', 'stat', el('b', null, d.owned || 0), el('span', null, 'words owned')),
+      el('div', 'stat', el('b', null, d.days || 0), el('span', null, 'days practised'))),
+    dots,
+    speeds.length > 1 ? [el('p', 'note', 'Reading speed, last tests'), line(speeds)] : null,
+    d.sayRight != null ? el('p', 'note', 'Said right out loud: ' + d.sayRight + '%') : null,
+    (d.focus || []).length ? el('p', 'focus', 'Working on: ' + d.focus[0]) : null,
+    (d.stumbles || []).length ? el('p', 'note', 'Stumbles on: ' + d.stumbles.join(', ')) : null);
+}
+(async () => {
+  const [coach, key] = decodeURIComponent(location.hash.slice(1)).split(':');
+  if (!SYNC_URL) return app.replaceChildren(el('p', 'note', 'Not switched on yet.'));
+  if (!coach || !key) return app.replaceChildren(el('p', 'note', 'Open this page from your private coach link.'));
+  try {
+    const r = await fetch(SYNC_URL + '/c/' + coach, { headers: { Authorization: 'Bearer ' + key } });
+    if (!r.ok) return app.replaceChildren(el('p', 'note', r.status === 401 ? 'That link is not valid.' : 'Could not load (' + r.status + ').'));
+    const { learners } = await r.json();
+    app.replaceChildren(el('h1', null, 'Your learners'),
+      el('p', 'note', learners.length ? 'Newest activity first. Refresh to update.' : 'Nobody yet. Send the learner link; they appear after their first session.'),
+      learners.map(learnerCard));
+  } catch (e) { app.replaceChildren(el('p', 'note', 'Could not reach the server.')); }
+})();
+</script>
+</body>
+</html>

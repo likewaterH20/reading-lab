@@ -155,11 +155,19 @@ function onboarding() {
     return screen(h('div', { class: 'eyebrow' }, 'Reading Lab'),
       h('h1', null, 'What language do you speak?'), h('p', { class: 'sub' }, '¿Qué idioma hablas?'),
       h('div', { class: 'choices' },
-        choose('Español', null, () => { OB.lang = 'es'; go('read'); }),
-        choose('English / other', null, () => { OB.lang = 'en'; go('read'); })));
+        choose('Español', null, () => { OB.lang = 'es'; go(COACH() ? 'name' : 'read'); }),
+        choose('English / other', null, () => { OB.lang = 'en'; go(COACH() ? 'name' : 'read'); })));
   }
   /* strings follow the chosen language from here on */
   P = null; const tl = id => (UI[id][OB.lang] || UI[id].en);
+  /* opened from a coach link: a name, and plain words that the coach sees the progress */
+  if (OB.step === 'name') {
+    const inp = h('input', { class: 'answer', type: 'text', autocomplete: 'given-name', maxlength: 40, placeholder: tl('nm_ph') });
+    const goOn = () => { const v = inp.value.trim(); if (!v) return inp.focus(); OB.name = v; go('read'); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') goOn(); });
+    screen(h('h1', null, tl('nm_q')), inp, h('p', { class: 'note' }, tl('nm_share')), h('div', { class: 'actions' }, primary(tl('next'), goOn)));
+    return inp.focus();
+  }
   if (OB.step === 'read') {
     say(OB.lang, tl('read_q'));
     return screen(h('h1', null, tl('read_q')), h('div', { class: 'choices' },
@@ -199,8 +207,9 @@ function onboarding() {
   if (OB.step === 'place') return placement(tl);
 }
 function finishOnboarding() {
-  P = { lang: OB.lang, level: OB.level, inds: OB.inds, when: OB.when, created: Date.now(), grade: OB.startGrade || 1, passed: {} };
-  OB = null; TAB = 'today'; snapshot(); save(); render();
+  P = { lang: OB.lang, level: OB.level, inds: OB.inds, when: OB.when, created: Date.now(), grade: OB.startGrade || 1, placed: OB.startGrade || 1, passed: {} };
+  if (COACH() && OB.name) { P.name = OB.name; P.coach = COACH(); P.uid = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); }
+  OB = null; TAB = 'today'; snapshot(); save(); render(); syncNow(true);
   /* his 10/14 word: "we have to start there". Everyone begins with lesson 1 of the Sounds of English. */
   startSoundLesson(1);
 }
@@ -502,6 +511,7 @@ function endRun() {
   releaseMic();
   /* owning three quarters of your level's words opens the next one, test or no test */
   const op = openByPractice(); if (op && !r.opened) r.opened = op.g;
+  setTimeout(() => syncNow(true), 0);
   /* a Sounds of English lesson is mastered when its words come out right: the gate to the next video */
   const sw = r.q.find(e => e.intro === 'soundwords');
   if (sw && r.results.length) {
@@ -1362,6 +1372,42 @@ function readingCard() {
       : h('p', { class: 'note' }, t('p_empty')));
 }
 
+/* ============================ COACH SYNC ============================
+   His 10/31 ask: "when i send the app to my brother and he makes a user name i can
+   track his progress on my side". Only a learner who opened a coach link (?coach=id)
+   and gave a name sends anything: a small summary after each session, to the coach's
+   Cloudflare worker. No audio, no typed sentences. The coach reads it on coach.html. */
+const SYNC_URL = '';   // set once the worker has an address
+try { const c = Q.get('coach'); if (c && /^[a-z0-9-]{2,40}$/.test(c)) localStorage.setItem('rl.coach', c); } catch {}
+const COACH = () => { try { return localStorage.getItem('rl.coach'); } catch { return null; } };
+let lastSync = 0;
+function syncSummary() {
+  const reads = LOG.filter(x => x.kind === 'read' && x.speed);
+  const says = LOG.filter(x => x.kind === 'say' && x.share != null).slice(-30);
+  const todayKey = today(), todayLog = LOG.filter(x => today(new Date(x.t)) === todayKey);
+  const weak = weakest(2), pat = topPattern();
+  return {
+    lang: P.lang, kind: P.level, level: P.grade, placed: P.placed || null, of: NLEV,
+    soundsDone: (P.sounds && P.sounds.done || []).length, soundScores: (P.sounds && P.sounds.score) || {},
+    owned: ownedIds().length, days: Object.keys(DAYS).filter(k => DAYS[k].n > 0).length, created: P.created,
+    bestSpeed: reads.length ? Math.max(...reads.map(x => x.speed)) : null,
+    reads: reads.slice(-10).map(x => ({ t: x.t, speed: x.speed, target: x.target, pass: !!x.pass, level: x.grade })),
+    sayRight: says.length ? Math.round(100 * says.reduce((p, x) => p + x.share, 0) / says.length) : null,
+    answersToday: todayLog.filter(x => x.g != null).length, minutesToday: Math.round(todayLog.length * 0.25),
+    focus: weak.map(w => w === 'spelling' && pat ? t('fx_spelling_' + pat) : t('fx_' + w)),
+    stumbles: topStumbles(6).map(it => it.en), lastActive: LOG.length ? LOG[LOG.length - 1].t : P.created,
+  };
+}
+function syncNow(force) {
+  if (!SYNC_URL || !P || !P.coach || !P.uid || !P.name) return;
+  if (!force && Date.now() - lastSync < 10 * 60e3) return;
+  lastSync = Date.now();
+  try {
+    fetch(SYNC_URL + '/p', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coach: P.coach, uid: P.uid, name: P.name, data: syncSummary() }) }).catch(() => {});
+  } catch {}
+}
+
 /* ============================ MIC TEST ============================
    One screen that says exactly what is wrong: no permission, no sound reaching
    the mic, or sound but no words recognised. Live level bar + what it heard. */
@@ -1416,6 +1462,7 @@ function openProfile() {
       }))),
       h('div', { class: 'eyebrow' }, t('pf_sound')),
       h('div', { class: 'row' }, opt(t('pf_on'), !soundOff, () => store.set('soundOff', false)), opt(t('pf_off'), soundOff, () => store.set('soundOff', true))),
+      P.coach ? h('p', { class: 'note' }, t('nm_shared', { n: P.name })) : null,
       h('div', { class: 'eyebrow' }, t('mt_title')),
       h('div', { class: 'row' }, btn(t('mt_go'), () => { dlg.remove(); micTest(); }, 'ghost small')),
       h('div', { class: 'row danger' }, btn(t('pf_reset'), () => {
@@ -1430,5 +1477,6 @@ if (Q.has('reset')) { store.wipe(); P = null; CARDS = {}; LOG = []; DAYS = {}; S
 if (P) {
   P.grade = P.grade || 1; P.passed = P.passed || {};
   P.inds = (P.inds || []).filter(id => CONTENT.industries.some(x => x.id === id));
+  setTimeout(() => syncNow(false), 2000);
 }
 voiceReady.then(render);

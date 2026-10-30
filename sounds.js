@@ -43,7 +43,16 @@ function soundsCard() {
         : primary(all ? t('so_rewatch', { n: L.n }) : t('so_watch', { n: L.n }), () => startSoundLesson(L.n))),
     /* the spaced rewatch: a finished lesson comes back on the ladder */
     due ? h('div', { class: 'row between dr-row' }, h('span', { class: 'note' }, t('so_due', { n: due.L.n })), btn(t('so_rewatch', { n: due.L.n }), () => startSoundLesson(due.L.n), 'ghost small'))
-      : soon ? h('p', { class: 'note' }, t('so_next_in', { n: soon.L.n, d: soon.days })) : null);
+      : soon ? h('p', { class: 'note' }, t('so_next_in', { n: soon.L.n, d: soon.days })) : null,
+    /* every lesson you have reached, tap to watch again, as often as you like (his 10/31 word:
+       "they wont learn it watching it once"); later lessons stay locked */
+    st.done.length ? h('div', { class: 'lessons' },
+      h('span', { class: 'note' }, t('so_again_any')),
+      h('div', { class: 'row' }, CONTENT.sounds.map(x => {
+        const open = st.done.includes(x.n) || x.n === L.n;
+        return h('button', { class: 'lnum' + (x.n === L.n ? ' next' : '') + (st.done.includes(x.n) ? ' done' : ''), disabled: !open,
+          'aria-label': t('so_lesson', { n: x.n }), onclick: () => startSoundLesson(x.n) }, String(x.n));
+      }))) : null);
 }
 /* words from the library that carry this lesson's pattern: the drill after the video */
 const SOUND_EXCEPT = new Set(CONTENT.soundsExcept || []);
@@ -241,7 +250,7 @@ function finishSoundLesson() {
   if (st.last[L.n]) st.reps[L.n] = (st.reps[L.n] || 0) + 1;
   st.last[L.n] = Date.now();
   LOG.push({ t: Date.now(), kind: 'sound', n: L.n });
-  snapshot(); save();
+  snapshot(); save(); syncNow(true);
   clearInterval(S.timer); try { S.yt && S.yt.destroy(); } catch {}
   SOUND = null;
   const ids = soundLessonWords(L);
