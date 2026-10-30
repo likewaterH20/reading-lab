@@ -211,7 +211,12 @@ function soundLessonScreen() {
         },
         onStateChange: e => {
           clearInterval(S.timer);
-          if (e.data === 1) { onState(true, false); S.timer = setInterval(() => onTime(S.yt.getCurrentTime()), 250); }
+          if (e.data === 1) {
+            /* YouTube loads its caption module only once the video plays: unload it on every play, twice (his 10/31 screenshot still showed captions) */
+            const noCC = () => { try { S.yt.unloadModule('captions'); S.yt.unloadModule('cc'); S.yt.setOption('captions', 'track', {}); } catch {} };
+            noCC(); setTimeout(noCC, 800); setTimeout(noCC, 2500);
+            onState(true, false); S.timer = setInterval(() => onTime(S.yt.getCurrentTime()), 250);
+          }
           else if (e.data === 2) onState(false, false);
           else if (e.data === 0) onState(false, true);
         }
