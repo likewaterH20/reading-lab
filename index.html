@@ -58,6 +58,12 @@ h2 { font: 700 24px/1.25 var(--read); letter-spacing: -.015em; margin: 0; }
   box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--shadow); }
 .card.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .card.best, .card.week, .card.dread { box-shadow: inset 4px 0 0 var(--accent), inset 0 1px 0 rgba(255,255,255,.05), var(--shadow); }
+/* the weekly note: smaller, and tinted so it reads as something different (his 10/31 word) */
+.card.week { background: color-mix(in srgb, var(--accent) 14%, var(--panel)); padding: 16px 18px; gap: 8px; }
+.card.week .hero { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.card.week .stat.big b { font-size: 24px; }
+.card.week .lead { font-size: 17px; }
+.card.week .actions { margin-top: 0; }
 .hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--gap); }
 .stat { display: flex; flex-direction: column; }
 .stat b { font: 700 28px/1.1 var(--read); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
