@@ -50,7 +50,7 @@ const UI = CONTENT.ui;
 function t(id, vars) {
   const row = UI[id];
   if (!row) return id;
-  let out = row[(typeof P !== 'undefined' && P.lang) || 'en'] || row.en;
+  let out = row[(typeof P !== 'undefined' && P && P.lang) || 'en'] || row.en;
   if (vars) for (const [k, v] of Object.entries(vars)) out = out.split('{' + k + '}').join(v);
   return out;
 }
@@ -213,8 +213,12 @@ const EAR = {
       for (let i = from; c && i < e.results.length && self.cur === c; i++) c.onResult(e.results[i]);
       self.seen = e.results.length;
     };
+    r.onaudiostart = () => { self.heardAudio = true; };
     r.onerror = ev => {
       if (ev.error !== 'not-allowed' && ev.error !== 'service-not-allowed') return;
+      /* iPhone: a restart outside a tap is refused with not-allowed. That is not "the mic is off";
+         only a refusal before any audio ever started means the person said no. */
+      if (self.heardAudio) { self.want = false; self.r = null; return; }
       MIC.srOff = true; const c = self.cur; self.stop(); if (c && c.onOff) c.onOff();
     };
     r.onend = () => { if (self.r !== r) return; self.r = null; self.seen = 0; if (self.cur) self.cur.from = 0; if (self.want) self._open(); };

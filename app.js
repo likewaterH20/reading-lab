@@ -109,12 +109,25 @@ document.addEventListener('keydown', e => {
   const b = document.querySelector('[data-primary]:not([disabled])');
   if (b) { e.preventDefault(); b.click(); }
 });
+/* iPhone keyboard (his 10/31 word: "when you type your iphone keyboard should be available"):
+   iOS only opens the keyboard when focus happens inside a tap. The next question's box is
+   built a moment later, outside the tap, so the keyboard used to close between questions.
+   Fix: on Return / Check, hand focus to a hidden holder input inside the same tap, which keeps
+   the keyboard up; the next box takes focus from it. If a screen has no box, let go. */
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const KB = (() => { const k = document.createElement('input'); k.type = 'text'; k.setAttribute('aria-hidden', 'true'); k.tabIndex = -1; k.className = 'kbhold'; k.autocomplete = 'off'; document.body.appendChild(k); return k; })();
+function holdKeyboard() { const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && a !== KB) { try { KB.focus({ preventScroll: true }); } catch { KB.focus(); } } }
+function focusBox(el) { try { el.focus({ preventScroll: false }); } catch { el.focus(); } }
+setInterval(() => { if (document.activeElement === KB && !document.querySelector('main input.answer, main textarea.answer')) KB.blur(); }, 600);
 function input(onEnter, placeholder = '') {
   const el = h('input', {
     class: 'answer', type: 'text', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off',
-    spellcheck: 'false', placeholder, 'data-enter': '1', lang: 'en', translate: 'no'
+    spellcheck: 'false', placeholder: placeholder || t('type_here'), 'data-enter': '1', lang: 'en', translate: 'no',
+    inputmode: 'text', enterkeyhint: 'go'
   });
-  el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); onEnter(el.value); } });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); holdKeyboard(); onEnter(el.value); } });
+  /* the box focuses itself as soon as it is on the page; with the holder up, iOS keeps the keyboard */
+  requestAnimationFrame(() => { if (document.body.contains(el) && document.activeElement !== el && (document.activeElement === KB || !IOS)) focusBox(el); });
   return el;
 }
 const speakerIcon = () => s('svg', { viewBox: '0 0 24 24', width: 22, height: 22, 'aria-hidden': 'true' },
@@ -672,7 +685,7 @@ const PHASES = {
     };
     const inp = input(check);
     mount(host, h('div', { class: 'eyebrow' }, t('ph_pre')), listenRow(play, playSlow), inp,
-      h('div', { class: 'actions' }, btn(t('dont_know'), () => ctx.next(), 'ghost'), primary(t('check'), () => check(inp.value))));
+      h('div', { class: 'actions' }, btn(t('dont_know'), () => ctx.next(), 'ghost'), primary(t('check'), () => { holdKeyboard(); check(inp.value); })));
     inp.focus();
     speakPhase('ph_pre').then(() => alive(my) && play());
   },
@@ -784,8 +797,9 @@ const PHASES = {
     await speakPhase(isSent ? 'ph_shadow' : 'ph_say');
     if (!alive(my)) return;
     await playModel();
-    /* once the microphone is allowed, the take starts right after the model */
-    if (alive(my) && (MIC.stream || MIC.warm) && !MIC.denied) take();
+    /* once the microphone is allowed, the take starts right after the model; on an iPhone the
+       mic only starts from a tap, so there the Record button stays the way in */
+    if (alive(my) && !IOS && (MIC.stream || MIC.warm) && !MIC.denied) take();
   },
 
   /* dictation from sound alone: the writing drill */
@@ -810,11 +824,11 @@ const PHASES = {
         h('p', { class: 'sentence', translate: 'no', lang: 'en' }, v), sentEl);
       (sentEl ? sayAlong(it.sentence, sentEl) : Promise.resolve()).then(() => alive(my) && finishItem(host, my, 1600));
     };
-    area.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); check(); } });
+    area.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); holdKeyboard(); check(); } });
     mount(host, h('div', { class: 'eyebrow' }, t('ph_use')),
       h('h2', { class: 'q' }, t('use_q', { w: it.en })),
       h('p', { class: 'note' }, t('use_hint')),
-      area, fb, h('div', { class: 'actions' }, primary(t('check'), check)));
+      area, fb, h('div', { class: 'actions' }, primary(t('check'), () => { holdKeyboard(); check(); })));
     area.focus();
   },
 
@@ -839,7 +853,7 @@ const PHASES = {
     };
     const inp = input(check);
     mount(host, h('div', { class: 'eyebrow' }, t('ph_write')), listenRow(play, playSlow), inp, fb,
-      picOf(it, 'pic small'), glossOf(it), h('div', { class: 'actions' }, primary(t('check'), () => check(inp.value))));
+      picOf(it, 'pic small'), glossOf(it), h('div', { class: 'actions' }, primary(t('check'), () => { holdKeyboard(); check(inp.value); })));
     inp.focus();
     speakPhase('ph_write').then(() => alive(my) && play());
   },
@@ -888,7 +902,7 @@ const PHASES = {
     let slow = false;
     const play = () => say('en', text), playSlow = () => { slow = true; say('en', text, true); };
     const area = h('textarea', { class: 'answer long', rows: 3, autocomplete: 'off', autocapitalize: 'sentences', spellcheck: 'false', lang: 'en', translate: 'no' });
-    area.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } });
+    area.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); holdKeyboard(); check(); } });
     const check = () => {
       if (!area.value.trim()) return;
       const d = wordDiff(text, area.value);
@@ -899,7 +913,7 @@ const PHASES = {
       sayAlong(text, sentEl).then(() => finishItem(host, my, g === 3 ? 800 : 1600));
     };
     mount(host, h('div', { class: 'eyebrow' }, t('ph_sentence')), listenRow(play, playSlow), area,
-      h('div', { class: 'actions' }, primary(t('check'), check)));
+      h('div', { class: 'actions' }, primary(t('check'), () => { holdKeyboard(); check(); })));
     area.focus();
     play();
   },
@@ -929,7 +943,7 @@ const PHASES = {
       h('div', { class: 'word es', translate: 'no', lang: 'es' }, it.es),
       /* the rule is a hint while new; on review you recall it yourself */
       ctx.e.mode === 'new' ? h('div', { class: 'row' }, chip(rule.es_end + '  →  ' + rule.en_end)) : null,
-      inp, fb, h('div', { class: 'actions' }, primary(t('check'), () => check(inp.value))));
+      inp, fb, h('div', { class: 'actions' }, primary(t('check'), () => { holdKeyboard(); check(inp.value); })));
     inp.focus();
     say('es', it.es);
   },

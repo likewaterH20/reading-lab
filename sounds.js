@@ -147,7 +147,8 @@ function soundLessonScreen() {
     h('div', { class: 'runbar' }, h('span', { class: 'eyebrow' }, t('so_lesson', { n: L.n })), h('span', { style: 'flex:1' }), h('button', { class: 'ghost small', onclick: () => leaveSoundLesson(), 'aria-label': t('close_x') }, t('close_x'))),
     h('h2', null, P.lang === 'es' ? L.es : L.title),
     box, track,
-    h('div', { class: 'vctl' }, playBtn, btn('−5 s', () => seek(time() - 5), 'ghost small'), btn('+5 s', () => seek(time() + 5), 'ghost small'), rateN, rateF, loopBtn, coachBtn, timeEl),
+    /* minimal (his 10/31 word): tap the video to play or pause; no Play / −5 / +5 buttons */
+    h('div', { class: 'vctl' }, rateN, rateF, loopBtn, coachBtn, timeEl),
     live, coachEl,
     h('div', { class: 'actions' }, finish),
     blocksCard, tipsCard));
@@ -361,17 +362,19 @@ function practiceItem() {
     say('en', it.en);
   } else if (A.kind === 'type') {
     const host = practiceShell(t('g_k_spell'));
-    const inp = input(v => { if (!v.trim() || A.token !== my) return; const ok = isRight(v, it.en); if (!ok) mount(host, letterDiff(it.en, v)); next(ok, v); });
-    mount(host, hear(), inp, h('div', { class: 'actions' }, primary(t('check'), () => inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))));
-    inp.focus(); say('en', it.en);
+    const inp = input(v => { if (!v.trim() || A.token !== my) return; const ok = isRight(v, it.en); if (!ok) host.insertBefore(letterDiff(it.en, v), inp); next(ok, v); });
+    mount(host, hear(), inp, h('div', { class: 'actions' }, primary(t('check'), () => { holdKeyboard(); inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); })));
+    say('en', it.en);
   } else if (A.kind === 'say') {
     const host = practiceShell(t('pr_say_q'));
     const status = h('p', { class: 'note' }, t('g_say_now'));
     const ear = EAR.listen(it.en, (ok, heard) => { if (A.token !== my) return; status.textContent = ok ? t('so_heard_ok') : heard ? t('heard', { w: heard }) : t('g_say_miss'); next(ok); },
       () => { if (A.token !== my) return; A.kind = 'pick'; practiceItem(); });
     setTimeout(() => { if (A.token !== my || A.over) return; ear.cancel(); status.textContent = t('g_say_miss'); next(false); }, 7000);
+    /* a tap always (re)opens the mic: iPhone stops listening between words and only restarts from a tap */
+    const talk = primary(t('tap_say'), () => { if (A.token !== my) return; EAR.start(); status.textContent = t('g_say_now'); });
     mount(host, wordBlock(it, true, false), status, h('div', { class: 'actions' }, btn(t('slow'), () => say('en', it.en, true), 'ghost'),
-      btn(t('skip'), () => { if (A.token !== my) return; ear.cancel(); next(false); }, 'ghost')));
+      btn(t('skip'), () => { if (A.token !== my) return; ear.cancel(); next(false); }, 'ghost'), IOS || !EAR.r ? talk : null));
   } else {
     /* quick ear: two choices, five seconds */
     const host = practiceShell(t('pr_quick_q'));
