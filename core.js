@@ -242,12 +242,12 @@ const EAR = {
       try {
         const ctx = audioCtx(); if (ctx.state === 'suspended') ctx.resume();
         const src = ctx.createMediaStreamSource(MIC.stream), an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
-        const buf = new Float32Array(an.fftSize); let spoke = false, quiet = 0;
+        const buf = new Float32Array(an.fftSize); let spoke = false, quiet = 0; const isVoice = speechGate();
         const iv = setInterval(() => {
           if (this.ver !== my) return;
           an.getFloatTimeDomainData(buf); let e = 0; for (const x of buf) e += x * x;
           const rms = Math.sqrt(e / buf.length), now = performance.now();
-          if (rms > 0.02) { spoke = true; quiet = 0; }
+          if (isVoice(rms)) { spoke = true; quiet = 0; }
           else if (spoke) { quiet = quiet || now; if (now - quiet > 1000) { clearInterval(iv); setTimeout(() => finish(false), 500); } }
         }, 50);
         vad = () => { clearInterval(iv); try { src.disconnect(); } catch {} };
@@ -261,6 +261,12 @@ const EAR = {
     if (r) { try { r.onend = null; r.stop(); } catch {} }
   },
 };
+/* is this sound a voice? The bar adapts to the room: three times the quietest level heard,
+   never above the old fixed 0.02 (a quiet laptop mic at half input volume sat under it, 10/31) */
+function speechGate() {
+  let floor = Infinity;
+  return rms => { floor = Math.min(floor, rms || Infinity); return rms > Math.max(0.006, Math.min(0.02, floor * 3)); };
+}
 /* turn the microphone fully off (the browser's recording light goes out) */
 function releaseMic() {
   if (MIC.stream) { MIC.stream.getTracks().forEach(tr => tr.stop()); MIC.stream = null; MIC.warm = true; }
@@ -294,7 +300,7 @@ async function recordTake({ maxMs = 8000, onLevel, stopper } = {}) {
   rec.start();
   const t0 = performance.now();
   const buf = new Float32Array(an.fftSize);
-  let spoke = false, quietSince = 0;
+  let spoke = false, quietSince = 0; const isVoice = speechGate();
   await new Promise(res => {
     const done = () => { clearInterval(iv); res(); };
     if (stopper) stopper.stop = done;
@@ -302,9 +308,9 @@ async function recordTake({ maxMs = 8000, onLevel, stopper } = {}) {
       an.getFloatTimeDomainData(buf);
       let e = 0; for (const x of buf) e += x * x;
       const rms = Math.sqrt(e / buf.length);
-      if (onLevel) onLevel(Math.min(1, rms * 8));
+      if (onLevel) onLevel(Math.min(1, rms * 14));
       const now = performance.now();
-      if (rms > 0.02) { spoke = true; quietSince = 0; }
+      if (isVoice(rms)) { spoke = true; quietSince = 0; }
       else if (spoke) { quietSince = quietSince || now; if (now - quietSince > 1000) done(); }
       if (now - t0 > maxMs) done();
     }, 50);

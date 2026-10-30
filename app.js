@@ -1362,6 +1362,40 @@ function readingCard() {
       : h('p', { class: 'note' }, t('p_empty')));
 }
 
+/* ============================ MIC TEST ============================
+   One screen that says exactly what is wrong: no permission, no sound reaching
+   the mic, or sound but no words recognised. Live level bar + what it heard. */
+async function micTest() {
+  stopVoice();
+  const meter = h('div', { class: 'meter' }, h('i'));
+  const heardEl = h('p', { class: 'lead' }, '…');
+  const verdict = h('p', { class: 'note focus' }, t('mt_say'));
+  const close = () => { stop(); TAB = 'today'; render(); };
+  screen(h('div', { class: 'eyebrow' }, t('mt_title')), h('h2', null, t('mt_say')), meter, heardEl, verdict,
+    h('div', { class: 'actions' }, btn(t('mt_again'), () => { stop(); micTest(); }, 'ghost'), primary(t('close_x'), close)));
+  let stream = null, iv = null, r = null, peak = 0, words = '';
+  const stop = () => { clearInterval(iv); try { r && r.stop(); } catch {} if (stream) stream.getTracks().forEach(x => x.stop()); };
+  if (!micPossible()) { verdict.textContent = t('mt_nosr'); return; }
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true } }); }
+  catch (e) { verdict.textContent = t('mt_denied'); MIC.denied = true; return; }
+  MIC.denied = false; MIC.srOff = false;
+  const ctx = audioCtx(); if (ctx.state === 'suspended') await ctx.resume();
+  const an = ctx.createAnalyser(); an.fftSize = 1024; ctx.createMediaStreamSource(stream).connect(an);
+  const buf = new Float32Array(an.fftSize);
+  iv = setInterval(() => { an.getFloatTimeDomainData(buf); let e = 0; for (const x of buf) e += x * x; const rms = Math.sqrt(e / buf.length); peak = Math.max(peak, rms); meter.firstChild.style.width = Math.min(100, rms * 1400) + '%'; }, 60);
+  if (SR) {
+    r = new SR(); r.lang = 'en-US'; r.continuous = true; r.interimResults = true;
+    r.onresult = e => { words = [...e.results].map(x => x[0].transcript).join(' ').trim(); heardEl.textContent = words || '…'; };
+    r.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') verdict.textContent = t('mt_denied'); };
+    try { r.start(); } catch {}
+  }
+  setTimeout(() => {
+    if (!document.body.contains(meter)) return;
+    verdict.textContent = words ? t('mt_ok') : peak < 0.015 ? t('mt_quiet') : SR ? t('mt_nowords') : t('mt_nosr');
+    stop();
+  }, 8000);
+}
+
 /* ============================ PROFILE ============================ */
 function openProfile() {
   const close = () => { dlg.remove(); render(); };
@@ -1382,6 +1416,8 @@ function openProfile() {
       }))),
       h('div', { class: 'eyebrow' }, t('pf_sound')),
       h('div', { class: 'row' }, opt(t('pf_on'), !soundOff, () => store.set('soundOff', false)), opt(t('pf_off'), soundOff, () => store.set('soundOff', true))),
+      h('div', { class: 'eyebrow' }, t('mt_title')),
+      h('div', { class: 'row' }, btn(t('mt_go'), () => { dlg.remove(); micTest(); }, 'ghost small')),
       h('div', { class: 'row danger' }, btn(t('pf_reset'), () => {
         if (!confirm(t('pf_reset_q'))) return;
         store.wipe(); P = null; CARDS = {}; LOG = []; DAYS = {}; SEEN = {}; OB = null; dlg.remove(); render();
