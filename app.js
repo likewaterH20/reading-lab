@@ -462,7 +462,7 @@ function levelCard(today) {
   /* your level plays the full session (reviews, new words, the test); an older level replays its own words */
   const play = current
     ? (today.q ? primary(today.more ? t('go_more') : t('lv_play'), () => startRun(today.q)) : null)
-    : primary(t('lv_play'), () => startLevel(g));
+    : primary(t('lv_replay'), () => startLevel(g));
   return h('div', { class: 'levelcard' + (g === P.grade ? ' current' : '') },
     h('div', { class: 'row between' },
       g > 1 ? h('button', { class: 'ghost small', onclick: () => nav(-1), 'aria-label': t('lv_prev') }, '‹ ' + gradeName(g - 1)) : h('span'),
@@ -471,7 +471,9 @@ function levelCard(today) {
     h('p', { class: 'lead' }, levelLabel(g)),
     h('div', { class: 'lbar' }, h('i', { style: `width:${ids.length ? Math.round(100 * own / ids.length) : 0}%` })),
     h('p', { class: 'note' }, t('lv_owned', { a: own, b: ids.length }) + (g === P.grade ? ' · ' + t('lv_current') : '')),
-    current ? h('p', { class: today.q ? 'note' : 'lead' }, today.plan) : null,
+    /* what the practice does and why (his 10/30 word: "i dont get how thats going help") */
+    current ? h('p', { class: today.q ? 'lead' : 'lead' }, today.q ? t('lv_how') : today.plan) : null,
+    current && today.q ? h('p', { class: 'note' }, today.plan) : null,
     play ? h('div', { class: 'actions' }, play) : null,
     current && canRead() ? dailyReadRow() : null);
 }

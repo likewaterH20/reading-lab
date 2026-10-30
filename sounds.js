@@ -199,10 +199,12 @@ function soundLessonScreen() {
     if (!SOUND || SOUND !== S) return;
     S.yt = new YT.Player(host, {
       videoId: L.id, host: 'https://www.youtube-nocookie.com',
-      playerVars: { rel: 0, modestbranding: 1, playsinline: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, origin: location.origin },
+      playerVars: { rel: 0, modestbranding: 1, playsinline: 1, controls: 0, disablekb: 1, fs: 0, iv_load_policy: 3, cc_load_policy: 0, origin: location.origin },
       events: {
         onReady: () => {
           S.ready = true;
+          /* YouTube's own captions stay off; the app's cards do the teaching (his 10/30 word) */
+          try { S.yt.unloadModule('captions'); S.yt.unloadModule('cc'); } catch {}
           S.yt.setPlaybackRate(P.soundsRate || 1.25);
           if (MUTED() || store.get('soundOff', false)) S.yt.mute();
           const resume = st.pos[L.n]; if (resume > 10 && resume < L.duration - 15) seek(resume);
