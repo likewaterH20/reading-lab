@@ -10,38 +10,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&family=Instrument+Sans:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* ink and paper: a deep ink-blue ground, warm cream text, one teal lamp */
-  --bg: #0e1216; --panel: #161b21; --panel-2: #1e242b; --line: #29313a;
-  --text: #f1ebdf; --muted: #9c9a90; --accent: #1cbdb4; --accent-ink: #05211f;
-  --miss: #ff8a75; --gap: 16px; --r: 8px;
-  --glow: rgba(28, 189, 180, .16); --shadow: 0 18px 40px -24px rgba(0, 0, 0, .8);
-  --serif: "Bodoni Moda", "Didot", Georgia, serif;
+  /* warm paper, friendly and light (his 10/29 word: "more friendly or inviting"): one teal-green accent, white cards */
+  --bg: #faf6ee; --panel: #ffffff; --panel-2: #f1ece1; --line: #e3dccd;
+  --text: #1f1d19; --muted: #6f6a60; --accent: #0f8f84; --accent-ink: #ffffff;
+  --miss: #d0442f; --gap: 16px; --r: 12px;
+  --glow: rgba(15, 143, 132, .10); --shadow: 0 10px 24px -18px rgba(60, 45, 20, .35);
+  --serif: "Instrument Sans", system-ui, -apple-system, sans-serif;
   /* anything you read, type or spell: a face built so letters cannot be confused */
   --read: "Atkinson Hyperlegible", "Instrument Sans", system-ui, sans-serif;
-  --reading: #e7e5df;
+  --reading: #23211c;
   --sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
-  color-scheme: dark;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #f3eee4; --panel: #fbf8f1; --panel-2: #ebe5d8; --line: #d9d1c1;
-    --text: #1a1916; --muted: #6b675d; --accent: #007d78; --accent-ink: #ffffff; --miss: #c23b2c; --reading: #1f1e1a;
-    --glow: rgba(0, 125, 120, .12); --shadow: 0 14px 30px -22px rgba(40, 30, 10, .5);
-    color-scheme: light;
-  }
+/* dark stays available on request (data-theme="dark"): ink and paper */
+:root[data-theme="dark"] {
+  --bg: #0e1216; --panel: #161b21; --panel-2: #1e242b; --line: #29313a;
+  --text: #f1ebdf; --muted: #9c9a90; --accent: #1cbdb4; --accent-ink: #05211f;
+  --miss: #ff8a75; --reading: #e7e5df;
+  --glow: rgba(28, 189, 180, .16); --shadow: 0 18px 40px -24px rgba(0, 0, 0, .8);
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 var(--read); -webkit-font-smoothing: antialiased; }
 /* the ground: a teal lamp at the top edge and a faint paper grain */
 body { background: radial-gradient(900px 420px at 18% -10%, var(--glow), transparent 70%), var(--bg); min-height: 100vh; }
+/* the paper grain only on the dark theme; the light theme stays clean */
+:root:not([data-theme="dark"]) body::before { display: none; }
 body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
 header, main { position: relative; z-index: 1; }
 button { font: inherit; color: inherit; cursor: pointer; }
 header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .bar { max-width: 680px; margin: 0 auto; padding: 14px var(--gap); display: flex; align-items: center; gap: 12px; }
-.brand { font: 600 22px/1 var(--serif); letter-spacing: .01em; white-space: nowrap; }
-.brand em { font-style: italic; color: var(--accent); }
+.brand { font: 700 20px/1 var(--read); letter-spacing: -.01em; white-space: nowrap; }
+.brand em { font-style: normal; color: var(--accent); }
 #nav { display: flex; gap: 14px; flex: 1; justify-content: center; }
 #meta { display: flex; align-items: center; gap: 10px; }
 .tab { background: none; border: 0; padding: 8px 2px; color: var(--muted); font-weight: 500; box-shadow: inset 0 -2px 0 transparent; transition: color .15s, box-shadow .15s; }
@@ -56,11 +58,12 @@ h2 { font: 700 24px/1.25 var(--read); letter-spacing: -.015em; margin: 0; }
 .sub { color: var(--muted); margin: -6px 0 0; }
 .lead { font-size: 20px; line-height: 1.45; margin: 0; }
 .note { color: var(--muted); margin: 0; font-size: 15px; }
-.eyebrow { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+/* labels in plain sentence case, no tracked caps (his rule: "straight forward modern") */
+.eyebrow { font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--muted); font-weight: 600; }
 .eyebrow.ok { color: var(--accent); }
 
 /* cards are sheets of paper: tone and shadow, no drawn frame; a teal spine marks the important ones */
-.card { background: var(--panel); border: 0; border-radius: var(--r); padding: 22px; display: flex; flex-direction: column; gap: 12px;
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; display: flex; flex-direction: column; gap: 12px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.05), var(--shadow); }
 .card.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .card.best, .card.week, .card.dread { box-shadow: inset 4px 0 0 var(--accent), inset 0 1px 0 rgba(255,255,255,.05), var(--shadow); }
@@ -76,7 +79,7 @@ h2 { font: 700 24px/1.25 var(--read); letter-spacing: -.015em; margin: 0; }
 button.chip.on { color: var(--accent-ink); background: var(--accent); }
 .when { color: var(--muted); margin: 0; }
 
-.btn { border: 0; background: var(--panel-2); padding: 13px 22px; border-radius: 999px; font-weight: 700; transition: transform .08s, box-shadow .15s; }
+.btn { border: 0; background: var(--panel-2); padding: 14px 24px; border-radius: 999px; font-weight: 700; font-size: 17px; transition: transform .08s, box-shadow .15s; }
 .btn:active { transform: translateY(1px); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 26px -12px var(--accent); }
 .btn.ghost { background: none; box-shadow: inset 0 0 0 1px var(--line); }
@@ -106,7 +109,7 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); }
 .word.es { color: var(--muted); }
 .word-block { display: flex; flex-direction: column; gap: 8px; }
 .saylike { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.saylike .lbl { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+.saylike .lbl { font-size: 13px; color: var(--muted); }
 .saylike .rs { font-size: 22px; letter-spacing: .02em; }
 .saylike b { color: var(--accent); font-weight: 700; text-transform: uppercase; }
 .gloss { font-size: 19px; color: var(--muted); }
@@ -231,7 +234,7 @@ button.chip.on { color: var(--accent-ink); background: var(--accent); }
 .ghost { color: var(--muted); font-size: 14px; }
 .ghost.ahead { color: var(--accent); font-weight: 700; }
 .wtable { display: grid; grid-template-columns: 1fr auto auto; gap: 6px 18px; align-items: baseline; }
-.wtable .hd { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+.wtable .hd { color: var(--muted); font-size: 13px; }
 .wtable b.up { color: var(--accent); }
 .note.focus { color: var(--text); border-left: 3px solid var(--accent); padding-left: 10px; }
 .sound-gate { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30; padding: 14px 22px; border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
