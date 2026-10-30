@@ -268,16 +268,15 @@ function weeklyReport() {
   const weak = weakest(2);
   const pat = topPattern();
   const focusLines = weak.map(w => w === 'spelling' && pat ? t('fx_spelling_' + pat) : t('fx_' + w));
-  const stumbles = topStumbles(5).map(it => it.en);
+  /* simple (his 10/31 word: "too much going on... overwhelming"): one sentence, three numbers, one focus line */
+  const three = [
+    ['wk_days', now.days, ''], ['wk_owned', now.owned, ''], ['wk_speed', now.speed, ''],
+  ].filter(r => r[1] != null);
   return h('div', { class: 'card week' },
     h('div', { class: 'eyebrow' }, t('wk_title')),
-    better.length ? h('p', { class: 'lead opened' }, t('wk_better') + ' ' + better.join(', ') + '.') : h('p', { class: 'lead' }, t('wk_start')),
-    h('div', { class: 'wtable' }, h('span', { class: 'hd' }, ''), h('span', { class: 'hd' }, t('wk_this')), h('span', { class: 'hd' }, t('wk_last')),
-      rows.map(([k, a, b, u]) => [h('span', null, t(k)),
-        h('b', { class: a != null && b != null && a > b ? 'up' : '' }, a == null ? '·' : a + u),
-        h('span', null, b == null ? '·' : b + u)])),
-    focusLines.length ? [h('div', { class: 'eyebrow' }, t('wk_focus')), focusLines.map(l => h('p', { class: 'note focus' }, l))] : null,
-    stumbles.length ? h('p', { class: 'note' }, t('wk_stumbles') + ' ' + stumbles.join(', ')) : null);
+    better.length ? h('p', { class: 'lead opened' }, t('wk_better') + ' ' + better.slice(0, 2).join(', ') + '.') : h('p', { class: 'lead' }, t('wk_start')),
+    h('div', { class: 'hero' }, three.map(([k, v, u]) => h('div', { class: 'stat big' }, h('b', null, v + u), h('span', null, t(k))))),
+    focusLines.length ? h('p', { class: 'note focus' }, focusLines[0]) : null);
 }
 
 /* ============================ DAILY READ ============================
