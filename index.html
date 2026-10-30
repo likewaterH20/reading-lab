@@ -33,7 +33,7 @@ header, main { position: relative; z-index: 1; }
 button { font: inherit; color: inherit; cursor: pointer; }
 header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .bar { max-width: 680px; margin: 0 auto; padding: 14px var(--gap); display: flex; align-items: center; gap: 12px; }
-.brand { font: 700 20px/1 var(--read); letter-spacing: -.01em; white-space: nowrap; }
+.brand { font: 700 20px/1 var(--read); letter-spacing: -.01em; white-space: nowrap; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
 .brand em { font-style: normal; color: var(--accent); }
 #nav { display: flex; gap: 14px; flex: 1; justify-content: center; }
 #meta { display: flex; align-items: center; gap: 10px; }
@@ -292,7 +292,7 @@ h2.q { font: 700 clamp(21px, 5vw, 25px)/1.35 var(--read); }
 </head>
 <body>
 <header><div class="bar">
-  <div class="brand">Reading <em>Lab</em></div>
+  <button class="brand" id="home" aria-label="Home">Reading <em>Lab</em></button>
   <nav id="nav"></nav>
   <div id="meta"></div>
 </div></header>

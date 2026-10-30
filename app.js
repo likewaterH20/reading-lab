@@ -90,6 +90,17 @@ function autoNext(host, fn, ms = 1300) {
   }));
   setTimeout(() => { if (!RUN || RUN.screen === my) fn(); }, ms);
 }
+/* the wordmark is the way home from anywhere, including mid-lesson (his 10/30 word) */
+function goHome() {
+  stopVoice();
+  if (typeof SOUND !== 'undefined' && SOUND) leaveSoundLesson();
+  if (RUN) { if (RUN.reader) try { RUN.reader.stop(); } catch {} RUN = null; releaseMic(); }
+  if (typeof EAR !== 'undefined') EAR.stop();
+  document.body.classList.remove('running');
+  if (P) TAB = 'today';
+  window.scrollTo(0, 0); render();
+}
+document.getElementById('home').addEventListener('click', goHome);
 /* Enter presses the screen's main button */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.shiftKey) return;
